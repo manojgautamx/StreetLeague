@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { WebView } from 'react-native-webview';
+import { useNavigation } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
 
@@ -23,6 +24,8 @@ const CreateLeagueScreen = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+
+  const navigation = useNavigation();
 
   const onCreate = () => {
     console.log({
@@ -60,9 +63,11 @@ const CreateLeagueScreen = () => {
         placeholderTextColor="#888"
       />
 
-      <TouchableOpacity style={styles.mapBtn}>
+      <TouchableOpacity
+        style={styles.mapBtn} onPress={() => navigation.navigate('MapScreen')} > // Navigate to MapScreen
         <Text style={styles.mapBtnText}>Choose on Map</Text>
       </TouchableOpacity>
+
 
       <Text style={styles.label}>Choose the Sport</Text>
       <TextInput

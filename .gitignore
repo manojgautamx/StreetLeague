@@ -35,42 +35,71 @@ local.properties
 !debug.keystore
 .kotlin/
 
-# node.js
-#
+# node.js (React Native)
 node_modules/
 npm-debug.log
 yarn-error.log
+package-lock.json
+yarn.lock
 
-# fastlane
-#
-# It is recommended to not store the screenshots in the git repo. Instead, use fastlane to re-generate the
-# screenshots whenever they are needed.
-# For more information about the recommended setup visit:
-# https://docs.fastlane.tools/best-practices/source-control/
-
+# fastlane (React Native)
 **/fastlane/report.xml
 **/fastlane/Preview.html
 **/fastlane/screenshots
 **/fastlane/test_output
 
-# Bundle artifact
+# Bundle artifact (React Native)
 *.jsbundle
 
-# Ruby / CocoaPods
+# Ruby / CocoaPods (React Native)
 **/Pods/
-/vendor/bundle/
+vendor/bundle/
 
-# Temporary files created by Metro to check the health of the file watcher
+# Temporary files created by Metro (React Native)
 .metro-health-check*
 
-# testing
+# testing (React Native)
 /coverage
 
-# Yarn
+# Yarn (React Native)
 .yarn/*
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
-node_modules/ 
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+__pycache__/
+db.sqlite3
+media/
+static/
+.env
+
+# Django settings and secrets
+*.env
+*.env.*
+local_settings.py
+settings_local.py
+
+# Python
+*.pyc
+*.pyo
+__pycache__/
+
+# Virtualenv (Django)
+env/
+venv/
+ENV/
+.venv/
+
+# IDE/Editor files
+.idea/
+.vscode/
+
+# Other
+*.swp
