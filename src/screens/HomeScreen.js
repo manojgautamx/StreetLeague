@@ -46,7 +46,7 @@ const HomeScreen = () => {
       </View>
 
       {/* Create League Button */}
-      <TouchableOpacity onPress={() => navigation.navigate('CreateLeague')}>
+      <TouchableOpacity onPress={() => navigation.navigate('CreateLeagueScreen')}>
         <Text style={styles.createLeagueText}>Create your league</Text>
         <Icon name="chevron-right" size={24} color="#fff" />
       </TouchableOpacity>

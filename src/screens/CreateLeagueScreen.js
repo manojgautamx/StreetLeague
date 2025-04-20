@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
   Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { WebView } from 'react-native-webview';
-import { useNavigation } from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useNavigation, useRoute } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
 
@@ -24,31 +24,68 @@ const CreateLeagueScreen = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   const navigation = useNavigation();
+  const route = useRoute(); // Use this to access the passed parameters
 
-  const onCreate = () => {
-    console.log({
-      location,
-      sport,
-      leagueName,
-      isCasual: isCasual ? 'Casual' : 'Competitive',
-      description,
-      date,
-      time,
-    });
+  // When the screen mounts, update location if passed from MapScreen
+  useEffect(() => {
+    if (route.params?.location) {
+      setLocation(route.params.location); // Update the location state
+    }
+  }, [route.params?.location]);
+
+  const onCreate = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/league/create-league', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          location: location,
+          sport: sport,
+          league_name: leagueName,
+          description: description,
+          category: isCasual ? 'Casual' : 'Competitive',
+          date: date,
+          time: time,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log('League created successfully:', data);
+        alert('League created!');
+        navigation.goBack();
+      } else {
+        console.error('Server responded with error:', data);
+        alert(data.detail || 'Failed to create league.');
+      }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        alert('Network or server error occurred.');
+    }
   };
 
-  const handleCalendarMessage = (event) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.date && data.time) {
-        setDate(data.date);
-        setTime(data.time);
-      }
-      setShowCalendar(false);
-    } catch (error) {
-      console.error('Invalid calendar data:', error);
+  // Handle date picker change
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      const formattedDate = selectedDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+      setDate(formattedDate);
+    }
+  };
+
+  // Handle time picker change
+  const onTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      const formattedTime = selectedTime.toTimeString().split(' ')[0]; // Format as HH:MM:SS
+      setTime(formattedTime);
     }
   };
 
@@ -64,10 +101,11 @@ const CreateLeagueScreen = () => {
       />
 
       <TouchableOpacity
-        style={styles.mapBtn} onPress={() => navigation.navigate('MapScreen')} > // Navigate to MapScreen
+        style={styles.mapBtn}
+        onPress={() => navigation.navigate('MapScreen')} // Navigate to MapScreen
+      >
         <Text style={styles.mapBtnText}>Choose on Map</Text>
       </TouchableOpacity>
-
 
       <Text style={styles.label}>Choose the Sport</Text>
       <TextInput
@@ -80,12 +118,18 @@ const CreateLeagueScreen = () => {
 
       <Text style={styles.label}>Time & Date</Text>
       <View style={styles.row}>
-        <TouchableOpacity style={styles.dateBtn} onPress={() => setShowCalendar(true)}>
+        <TouchableOpacity
+          style={styles.dateBtn}
+          onPress={() => setShowDatePicker(true)} // Show Date Picker
+        >
           <Icon name="calendar-outline" size={20} color="#fff" />
           <Text style={styles.dateText}>{date || 'Select Date'}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.dateBtn} onPress={() => setShowCalendar(true)}>
+        <TouchableOpacity
+          style={styles.dateBtn}
+          onPress={() => setShowTimePicker(true)} // Show Time Picker
+        >
           <Icon name="time-outline" size={20} color="#fff" />
           <Text style={styles.dateText}>{time || 'Select Time'}</Text>
         </TouchableOpacity>
@@ -126,36 +170,25 @@ const CreateLeagueScreen = () => {
         <Text style={styles.createText}>CREATE</Text>
       </TouchableOpacity>
 
-      <Modal visible={showCalendar} animationType="slide">
-        <WebView
-          source={{ uri: 'https://cal.com/sanji-62/30min' }}
-          onMessage={handleCalendarMessage}
-          injectedJavaScript={`
-            setTimeout(() => {
-              const btns = document.querySelectorAll('button');
-              btns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                  const selected = document.querySelector('[data-testid="selected-date"]');
-                  const timeSlot = document.querySelector('[data-testid="selected-time"]');
-                  if (selected && timeSlot) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                      date: selected.textContent,
-                      time: timeSlot.textContent
-                    }));
-                  }
-                });
-              });
-            }, 2000);
-            true;
-          `}
+      {/* Date Picker Modal */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
         />
-        <TouchableOpacity
-          onPress={() => setShowCalendar(false)}
-          style={{ position: 'absolute', top: 40, right: 20, zIndex: 99 }}
-        >
-          <Icon name="close-circle" size={30} color="#FF2E94" />
-        </TouchableOpacity>
-      </Modal>
+      )}
+
+      {/* Time Picker Modal */}
+      {showTimePicker && (
+        <DateTimePicker
+          value={new Date()}
+          mode="time"
+          display="default"
+          onChange={onTimeChange}
+        />
+      )}
     </ScrollView>
   );
 };
