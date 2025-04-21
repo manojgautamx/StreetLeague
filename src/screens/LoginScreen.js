@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, ssetPassword] = useState('');
 
   const handleLogin = async () => {
     try {
