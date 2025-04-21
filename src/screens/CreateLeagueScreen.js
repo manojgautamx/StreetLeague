@@ -39,7 +39,7 @@ const CreateLeagueScreen = () => {
 
   const onCreate = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/league/create-league', {
+      const response = await fetch('http://10.0.2.2:8000/api/create-league/', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +60,7 @@ const CreateLeagueScreen = () => {
       if (response.ok) {
         console.log('League created successfully:', data);
         alert('League created!');
-        navigation.goBack();
+        navigation.navigate('Home');
       } else {
         console.error('Server responded with error:', data);
         alert(data.detail || 'Failed to create league.');

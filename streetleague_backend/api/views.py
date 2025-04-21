@@ -7,7 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import LeagueSerializer
 from .models import League
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator  # Required for class-based views
+from django.utils.decorators import method_decorator
+
 
 @api_view(['POST'])
 def register(request):

@@ -5,17 +5,24 @@ import LoginScreen from '../screens/LoginScreen';
 import HomeScreen from '../screens/HomeScreen';
 import CreateLeagueScreen from '../screens/CreateLeagueScreen';
 import MapScreen from '../screens/MapScreen';
+import JoinedScreen from '../screens/JoinedScreen';
+import StartScreen from '../screens/StartScreen';
+import LoadingScreen from '../screens/LoadingScreen';
 
-const Stack = createNativeStackNavigator(); // ✅ This defines "Stack"
+const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+    <Stack.Navigator initialRouteName="Loading" screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="CreateLeagueScreen" component={CreateLeagueScreen} />
       <Stack.Screen name="MapScreen" component={MapScreen} />
+      <Stack.Screen name="Joined" component={JoinedScreen} />
+      <Stack.Screen name="Start" component={StartScreen} />
+      <Stack.Screen name="Loading" component={LoadingScreen} />
     </Stack.Navigator>
   );
 }
+
