@@ -46,3 +46,28 @@ class CreateLeagueView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+SPORTS = [
+    # Traditional Sports
+    'Futsal', 'Football', 'Cricket', 'Basketball', 'Badminton', 'Volleyball',
+    'Tennis', 'Table Tennis', 'Hockey', 'Handball', 'Chess',
+    'Baseball', 'Rugby', 'Kabaddi', 'Swimming', 'Athletics', 'Golf',
+    'Boxing', 'MMA', 'Wrestling', 'Gymnastics', 'Cycling', 'Archery',
+    'Shooting', 'Weightlifting', 'Judo', 'Karate', 'Taekwondo', 'Fencing',
+    
+    # eSports
+    'Counter-Strike', 'Dota 2', 'League of Legends', 'Valorant', 
+    'Fortnite', 'PUBG', 'Apex Legends', 'Call of Duty', 'Rainbow Six Siege',
+    'Rocket League', 'Overwatch', 'Hearthstone', 'FIFA', 'NBA 2K',
+    'StarCraft II', 'Super Smash Bros', 'Street Fighter', 'Tekken',
+    'Mobile Legends', 'Free Fire', 'Wild Rift', 'Arena of Valor'
+]
+
+@api_view(['GET'])
+def sport_suggestions(request):
+    query = request.GET.get('q', '').lower()
+    if not query:
+        return Response(SPORTS)  # return full list if no query
+    suggestions = [sport for sport in SPORTS if sport.lower().startswith(query)]
+    return Response(suggestions)
