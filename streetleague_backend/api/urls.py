@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import register, CreateLeagueView, MyLeaguesView, PublicLeaguesView, join_league, joined_leagues, update_league
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from .views import sport_suggestions
 
 urlpatterns = [
     path('register/', register, name='register'),  # Ensure this is correct
@@ -14,4 +15,5 @@ urlpatterns = [
     path('join-league/<int:league_id>/', join_league, name='join-league'),
     path('joined-leagues/', joined_leagues, name='joined-leagues'),
     path('api/update-league/<int:league_id>/', update_league, name='update-league'),
+    path('api/sports/suggestions/', sport_suggestions, name='sport-suggestions'),
 ]

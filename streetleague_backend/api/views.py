@@ -108,3 +108,26 @@ def update_league(request, league_id):
 
     except League.DoesNotExist:
         return Response({'detail': 'League not found.'}, status=404)
+
+SPORTS_LIST = [
+    # Traditional Sports
+    'Futsal', 'Football', 'Cricket', 'Basketball', 'Badminton', 'Volleyball',
+    'Tennis', 'Table Tennis', 'Hockey', 'Handball', 'Chess',
+    'Baseball', 'Rugby', 'Kabaddi', 'Swimming', 'Athletics', 'Golf',
+    'Boxing', 'MMA', 'Wrestling', 'Gymnastics', 'Cycling', 'Archery',
+    'Shooting', 'Weightlifting', 'Judo', 'Karate', 'Taekwondo', 'Fencing',
+    
+    # eSports
+    'Counter-Strike', 'Dota 2', 'League of Legends', 'Valorant', 
+    'Fortnite', 'PUBG', 'Apex Legends', 'Call of Duty', 'Rainbow Six Siege',
+    'Rocket League', 'Overwatch', 'Hearthstone', 'FIFA', 'NBA 2K',
+    'StarCraft II', 'Super Smash Bros', 'Street Fighter', 'Tekken',
+    'Mobile Legends', 'Free Fire', 'Wild Rift', 'Arena of Valor'
+]
+
+@api_view(['GET'])
+@permission_classes([AllowAny])  # Or use IsAuthenticated if needed
+def sport_suggestions(request):
+    query = request.GET.get('q', '').lower()
+    suggestions = [sport for sport in SPORTS_LIST if query in sport.lower()]
+    return Response(suggestions)
