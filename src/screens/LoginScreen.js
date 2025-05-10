@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,67 +8,62 @@ import {
   Image,
   Alert,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AuthContext } from '../context/AuthContext';
+import axiosInstance from '../utils/axiosInstance';
 
 const LoginScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const { login } = useContext(AuthContext);
+  
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://10.0.2.2:8000/api/token/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
+      const response = await axiosInstance.post('/token/', {
+        username,
+        password,
       });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        await AsyncStorage.setItem('accessToken', data.access);
-        await AsyncStorage.setItem('refreshToken', data.refresh);
-        navigation.navigate('Home');
-      } else {
-        Alert.alert('Login Failed', data.detail || 'Invalid credentials');
+  
+      console.log('Login API Response:', response.data); // <-- debug here
+  
+      const data = response.data;
+  
+      if (!data.access || !data.refresh) {
+        throw new Error('Access or refresh token missing in response');
       }
+  
+      await login(data.access, data.refresh);
     } catch (error) {
       console.error('Login Error:', error);
-      Alert.alert('Error', 'Something went wrong');
+      const errorMsg =
+        error.response?.data?.detail || error.message || 'Invalid credentials or server error';
+      Alert.alert('Login Failed', errorMsg);
     }
   };
+  
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <Image source={require('../assets/logo.png')} style={styles.logo} />
-
-      {/* Title */}
       <Text style={styles.title}>Sign in to your account</Text>
 
-      {/* Username Input */}
       <Text style={styles.label}>Username</Text>
       <TextInput
         style={styles.input}
         placeholder="e.g. johndoe"
-        placeholderTextColor="#E81F89"
         value={username}
         onChangeText={setUsername}
       />
 
-      {/* Password Input */}
       <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
         placeholder="****"
-        placeholderTextColor="#E81F89"
         secureTextEntry
         value={password}
         onChangeText={setPassword}
       />
 
-      {/* Sign In Button */}
       <TouchableOpacity style={styles.signInButton} onPress={handleLogin}>
         <Text style={styles.signInText}>SIGN IN</Text>
       </TouchableOpacity>

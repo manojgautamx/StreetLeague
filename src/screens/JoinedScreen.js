@@ -1,283 +1,304 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
+  FlatList,
   TouchableOpacity,
-  ScrollView,
+  ActivityIndicator,
   Image,
-  Dimensions,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useNavigation } from '@react-navigation/native';
+import useAxios from '../utils/useAxios';
 
-const screenWidth = Dimensions.get('window').width;
+const JoinedLeaguesScreen = () => {
+  const [joinedLeagues, setJoinedLeagues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const navigation = useNavigation();
+  const axios = useAxios();
+  const [activeTab, setActiveTab] = useState('joined');
 
-const LeagueCard = ({ type = 'message' }) => (
-  <View style={styles.card}>
-    <View>
-      <Image
-        source={require('../assets/futsal.png')}
-        style={styles.cardImage}
-        resizeMode="cover"
-      />
-      {type === 'edit' && (
-        <TouchableOpacity style={styles.editButton}>
-          <Text style={{ color: '#fff', fontSize: 12 }}>Edit</Text>
-        </TouchableOpacity>
-      )}
-    </View>
+  useEffect(() => {
+    fetchJoinedLeagues();
+  }, []);
 
-    <Text style={styles.title}>Futsal Play</Text>
+  const fetchJoinedLeagues = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get('http://10.0.2.2:8000/api/joined-leagues/');
+      setJoinedLeagues(response.data);
+    } catch (err) {
+      setError('Failed to load joined leagues.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    <View style={styles.row}>
-      <View style={styles.iconRow}>
-        <Ionicons name="football-outline" size={14} color="gray" />
-        <Text style={styles.infoText}>Futsal</Text>
+  const renderLeagueCard = ({ item }) => (
+    <TouchableOpacity
+      onPress={() => navigation.navigate('Description', { league: item })}
+      style={styles.card}
+    >
+      <Image source={require('../assets/futsal.png')} style={styles.cardImage} />
+
+      <View style={styles.cardContent}>
+        <Text style={styles.cardTitle}>{item.name}</Text>
+
+        <Text style={styles.label}>Sport:</Text>
+        <Text style={styles.value}>{item.sport}</Text>
+
+        <Text style={styles.label}>Location:</Text>
+        <Text style={styles.value}>{item.location}</Text>
+
+        <Text style={styles.label}>Date & Time:</Text>
+        <Text style={styles.value}>{item.date_time}</Text>
+
+        <Text style={styles.label}>League Type:</Text>
+        <Text style={styles.value}>{item.league_type}</Text>
+
+        <Text style={styles.label}>Max Players:</Text>
+        <Text style={styles.value}>{item.max_players}</Text>
+
+        <Text style={styles.label}>Price:</Text>
+        <Text style={styles.value}>₹{item.price}</Text>
+
+        <Text style={styles.label}>Description:</Text>
+        <Text style={styles.value}>{item.description}</Text>
       </View>
-      <View style={styles.iconRow}>
-        <Ionicons name="location-outline" size={14} color="gray" />
-        <Text style={styles.infoText}>1.2 km away</Text>
-      </View>
-    </View>
+    </TouchableOpacity>
+  );
 
-    <View style={styles.row}>
-      <View style={styles.iconRow}>
-        <Ionicons name="calendar-outline" size={14} color="gray" />
-        <Text style={styles.infoText}>12th Apr, 2025</Text>
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#E81F89" />
       </View>
-      <View style={styles.iconRow}>
-        <Ionicons name="time-outline" size={14} color="gray" />
-        <Text style={styles.infoText}>8:00 PM</Text>
-      </View>
-    </View>
+    );
+  }
 
-    {type !== 'edit' && (
-      <View style={styles.row}>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.messageButton}>
-          <Text style={styles.messageText}>Message</Text>
-        </TouchableOpacity>
-      </View>
-    )}
-    {type === 'edit' && (
-      <View style={styles.row}>
-        <View style={{ flex: 1 }} />
-        <TouchableOpacity style={styles.messageButton}>
-          <Text style={styles.messageText}>Message</Text>
-        </TouchableOpacity>
-      </View>
-    )}
-  </View>
-);
-
-const Joined = ({ navigation }) => {
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => console.log('Menu clicked')}>
-          <Icon name="menu" size={28} color="#fff" />
+      <FlatList
+        data={joinedLeagues}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderLeagueCard}
+        ListEmptyComponent={
+          <View style={{ padding: 16 }}>
+            <Text style={styles.noLeaguesText}>No joined league yet</Text>
+          </View>
+        }
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <Ionicons name="menu" size={28} color="#fff" />
+              <Image source={require('../assets/logo.png')} style={styles.logo} />
+              <Image source={require('../assets/iimage.png')} style={styles.profile} />
+            </View>
+
+            <TouchableOpacity
+              onPress={() => navigation.navigate('CreateLeague')}
+              style={styles.createLeagueBtn}
+            >
+              <Text style={styles.createLeagueText}>Create your league</Text>
+              <Ionicons name="chevron-forward" size={20} color="#fff" />
+            </TouchableOpacity>
+
+            <View style={styles.tabContainer}>
+              <TouchableOpacity onPress={() => navigation.navigate('Home')}>
+                <Text style={[styles.tabText, activeTab === 'nearby' && styles.activeTab]}>
+                  Nearby
+                </Text>
+                {activeTab === 'nearby' && <View style={styles.underline} />}
+              </TouchableOpacity>
+
+              <TouchableOpacity>
+                <Text style={[styles.tabText, activeTab === 'joined' && styles.activeTab]}>
+                  Joined Leagues
+                </Text>
+                {activeTab === 'joined' && <View style={styles.underline} />}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterSortRow}>
+              <TouchableOpacity style={styles.filterButton}>
+                <Ionicons name="filter" size={16} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={styles.filterText}>Filter</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        }
+        ListFooterComponent={
+          <View style={{ padding: 16 }}>
+            <Text style={styles.myLeaguesTitle}>My Leagues</Text>
+          </View>
+        }
+        contentContainerStyle={{ paddingBottom: 100 }}
+      />
+
+      <View style={styles.bottomBar}>
+        <TouchableOpacity style={styles.barItem} onPress={() => navigation.navigate('Home')}>
+          <Ionicons name="home" size={24} color="#fff" />
+          <Text style={styles.barLabel}>Home</Text>
         </TouchableOpacity>
-
-        <Image source={require('../assets/image.png')} style={styles.logo} />
-
-        {/* Profile Placeholder */}
-        <TouchableOpacity style={styles.profilePlaceholder} />
-      </View>
-
-      {/* Create League Button */}
-      <TouchableOpacity
-        style={styles.createLeague}
-        onPress={() => navigation.navigate('CreateLeague')}
-      >
-        <Text style={styles.createLeagueText}>Create your league</Text>
-        <Icon name="chevron-right" size={24} color="#fff" />
-      </TouchableOpacity>
-
-      {/* Tabs */}
-      <View style={styles.tabs}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Text style={styles.tabText}>Nearby</Text>
+        <TouchableOpacity style={styles.barItem}>
+          <Ionicons name="search" size={24} color="#fff" />
+          <Text style={styles.barLabel}>Search</Text>
         </TouchableOpacity>
-        <Text style={[styles.tabText, styles.activeTab]}>Joined Leagues</Text>
-      </View>
-
-      {/* Filter */}
-      <TouchableOpacity
-        style={styles.filterRow}
-        onPress={() => console.log('Filter clicked')}
-      >
-        <Ionicons name="filter-outline" size={16} color="#fff" />
-        <Text style={styles.filterText}>Filter</Text>
-      </TouchableOpacity>
-
-      {/* League Cards */}
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={{ paddingBottom: 80 }}>
-          {[...Array(2)].map((_, idx) => (
-            <LeagueCard key={idx} />
-          ))}
-
-          <Text style={styles.sectionTitle}>My leagues</Text>
-          <LeagueCard type="edit" />
-        </View>
-      </ScrollView>
-
-      {/* Bottom Navigation */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')}>
-          <Ionicons name="home-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="search-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity style={styles.barItem}>
           <Ionicons name="notifications-outline" size={24} color="#fff" />
+          <Text style={styles.barLabel}>Notifications</Text>
         </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="chatbubble-outline" size={24} color="#fff" />
+        <TouchableOpacity style={styles.barItem}>
+          <Ionicons name="chatbubble-ellipses-outline" size={24} color="#fff" />
+          <Text style={styles.barLabel}>Chat</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 };
 
-export default Joined;
+export default JoinedLeaguesScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#121212',
-    paddingTop: 40,
-    paddingHorizontal: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    padding: 16,
   },
   logo: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
   },
-  profilePlaceholder: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'gray',
-    borderWidth: 1,
-    borderColor: '#fff',
+  profile: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
-  createLeague: {
+  createLeagueBtn: {
+    backgroundColor: '#333',
     flexDirection: 'row',
-    backgroundColor: '#2a2a2a',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    alignItems: 'center',
+    padding: 14,
+    margin: 16,
+    borderRadius: 12,
   },
   createLeagueText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
-  tabs: {
+  tabContainer: {
     flexDirection: 'row',
-    marginBottom: 6,
+    justifyContent: 'space-around',
+    marginTop: 10,
+    marginBottom: 10,
   },
   tabText: {
-    color: 'gray',
-    marginRight: 24,
-    fontSize: 14,
-  },
-  activeTab: {
-    color: '#e91e63',
-    fontWeight: 'bold',
-    borderBottomWidth: 2,
-    borderBottomColor: '#e91e63',
-    paddingBottom: 4,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  filterText: {
-    color: 'gray',
-    fontSize: 14,
-    marginLeft: 6,
-  },
-  sectionTitle: {
-    color: '#fff',
+    color: '#ccc',
     fontSize: 16,
     fontWeight: '600',
-    marginVertical: 10,
+  },
+  activeTab: {
+    color: '#E81F89',
+  },
+  underline: {
+    height: 3,
+    backgroundColor: '#E81F89',
+    marginTop: 4,
+    borderRadius: 10,
+  },
+  filterSortRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1C1C1E',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  filterText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
   },
   card: {
-    backgroundColor: '#1e1e1e',
-    borderRadius: 12,
-    padding: 10,
-    width: '100%',
-    marginBottom: 12,
+    backgroundColor: '#1C1C1E',
+    borderRadius: 16,
+    marginBottom: 16,
+    marginHorizontal: 16,
+    overflow: 'hidden',
   },
   cardImage: {
     width: '100%',
-    height: 120,
-    borderRadius: 10,
+    height: 150,
+  },
+  cardContent: {
+    padding: 14,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  label: {
+    color: '#fff',
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  value: {
+    color: '#ccc',
     marginBottom: 6,
   },
-  editButton: {
+  noLeaguesText: {
+    color: '#888',
+    fontSize: 16,
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+  myLeaguesTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  bottomBar: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: '#e91e63',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    zIndex: 10,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  iconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  infoText: {
-    color: 'gray',
-    fontSize: 11,
-    marginLeft: 4,
-  },
-  messageButton: {
-    backgroundColor: '#e91e63',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  messageText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  bottomNav: {
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#1C1C1E',
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 12,
-    borderTopWidth: 1,
+    paddingVertical: 10,
+    borderTopWidth: 0.5,
     borderTopColor: '#333',
+  },
+  barItem: {
+    alignItems: 'center',
+  },
+  barLabel: {
+    fontSize: 12,
+    color: '#ccc',
+    marginTop: 2,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: '#121212',
   },
 });
