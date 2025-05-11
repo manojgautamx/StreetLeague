@@ -19,7 +19,7 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     try {
-      const response = await axiosInstance.post('/token/', {
+      const response = await axiosInstance.post('/api/token/', {
         username,
         password,
       });

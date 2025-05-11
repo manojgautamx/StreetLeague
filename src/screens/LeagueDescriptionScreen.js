@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -19,13 +18,34 @@ const LeagueDescriptionScreen = ({ route }) => {
 
   const [joining, setJoining] = useState(false);
   const [isJoined, setIsJoined] = useState(league.is_joined);
+  const [participants, setParticipants] = useState([]);
+  const [host, setHost] = useState(null);
+  const [currentUser, setCurrentUser] = useState('');
 
+  useEffect(() => {
+    fetchParticipants();
+  }, []);
+
+  // Fetch the updated list of participants and the host
+  const fetchParticipants = async () => {
+    try {
+      const res = await axios.get(`/api/league-participants/${league.id}/`);
+      setHost(res.data.host);  // Store host information
+      setParticipants(res.data.participants);  // Store participants list
+      setCurrentUser(res.data.current_user);  // Store current user info
+    } catch (error) {
+      console.error('Failed to load participants', error);
+    }
+  };
+
+  // Handle joining the league
   const handleJoinLeague = async () => {
     try {
       setJoining(true);
-      const response = await axios.post(`http://10.0.2.2:8000/api/join-league/${league.id}/`);
+      await axios.post(`/api/join-league/${league.id}/`);  // API call to join league
       Alert.alert('Success', 'You joined the league!');
       setIsJoined(true);
+      fetchParticipants();  // Update participants after joining
     } catch (error) {
       console.error(error);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to join league');
@@ -34,6 +54,72 @@ const LeagueDescriptionScreen = ({ route }) => {
     }
   };
 
+  // Handle leaving the league
+  const handleLeaveLeague = () => {
+    Alert.alert(
+      'Confirm Leave',
+      'Are you sure you want to leave the league?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Leave',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setJoining(true);
+              await axios.post(`/api/leave-league/${league.id}/`);  // API call to leave league
+              Alert.alert('Left', 'You have left the league.');
+              setIsJoined(false);
+              fetchParticipants();  // Update participants after leaving
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Error', error.response?.data?.detail || 'Failed to leave league');
+            } finally {
+              setJoining(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Handle kicking a player from the league (only for the host)
+  const handleKickPlayer = async (playerId) => {
+    Alert.alert(
+      'Confirm Kick',
+      'Are you sure you want to kick this player out of the league?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Kick',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await axios.post(`/api/kick-player/${league.id}/`, { player_id: playerId });
+              Alert.alert('Success', 'Player has been kicked from the league.');
+              fetchParticipants();  // Update participants after kicking
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Error', error.response?.data?.detail || 'Failed to kick player');
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Navigate to Edit League screen (only for host)
+  const handleEditLeague = () => {
+    if (host && currentUser === host.id) {
+      navigation.navigate('EditLeague', { league });  // Pass the league object to edit
+    } else {
+      Alert.alert('Permission Denied', 'Only the host can edit the league.');
+    }
+  };
+
+  // Navigate to the Chat Screen
   const handleMessage = () => {
     navigation.navigate('Chat', { leagueId: league.id });
   };
@@ -45,15 +131,7 @@ const LeagueDescriptionScreen = ({ route }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <Image
-          source={require('../assets/logo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-        <Image
-          source={require('../assets/iimage.png')}
-          style={styles.profile}
-        />
+        <Text style={styles.title}>{league.name}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
@@ -63,38 +141,49 @@ const LeagueDescriptionScreen = ({ route }) => {
           <Icon name="sports-soccer" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.sport}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Icon name="location-on" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.location}</Text>
         </View>
-
         <View style={styles.infoRow}>
           <Icon name="event" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.date_time}</Text>
         </View>
 
-        <View style={styles.infoRow}>
-          <Icon name="category" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.infoText}>{league.league_type}</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Host</Text>
+        {host && (
+          <Text style={styles.participantName}>👑 {host.username}</Text>
+        )}
 
-        <View style={styles.infoRow}>
-          <Icon name="group" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.infoText}>Max Players: {league.max_players}</Text>
-        </View>
+        <Text style={styles.sectionTitle}>Participants</Text>
+        {participants.length > 0 ? (
+          participants.map((user, index) => (
+            <View key={index} style={styles.participantRow}>
+              <Text style={styles.participantName}>
+                • {user.username === host?.username ? `${user.username} (Host)` : user.username}
+              </Text>
+              {host && user.id !== host.id && (
+                <TouchableOpacity
+                  style={styles.kickButton}
+                  onPress={() => handleKickPlayer(user.id)}
+                >
+                  <Text style={styles.kickText}>Kick</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))
+        ) : (
+          <Text style={styles.descriptionText}>No participants yet.</Text>
+        )}
 
-        <View style={styles.infoRow}>
-          <Icon name="attach-money" size={20} color="#fff" style={styles.icon} />
-          <Text style={styles.infoText}>₹{league.price}</Text>
-        </View>
-
-        <Text style={styles.sectionTitle}>Description</Text>
-        <Text style={styles.descriptionText}>{league.description}</Text>
-
+        {/* Join/Leave Button */}
         {isJoined ? (
-          <TouchableOpacity style={styles.messageButton} onPress={handleMessage}>
-            <Text style={styles.joinText}>Message</Text>
+          <TouchableOpacity
+            style={styles.leaveButton}
+            onPress={handleLeaveLeague}
+            disabled={joining}
+          >
+            <Text style={styles.joinText}>{joining ? 'Leaving...' : 'Leave League'}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -105,6 +194,24 @@ const LeagueDescriptionScreen = ({ route }) => {
             <Text style={styles.joinText}>{joining ? 'Joining...' : 'JOIN'}</Text>
           </TouchableOpacity>
         )}
+
+        {/* Edit League Button (Only for Host) */}
+        {host && currentUser === host.id && (
+          <TouchableOpacity
+            style={styles.editButton}
+            onPress={handleEditLeague}
+          >
+            <Text style={styles.joinText}>Edit League</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Message Button (For all participants) */}
+        <TouchableOpacity
+          style={styles.messageButton}
+          onPress={handleMessage}
+        >
+          <Text style={styles.joinText}>Message League</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -123,25 +230,16 @@ const styles = StyleSheet.create({
     padding: 16,
     justifyContent: 'space-between',
   },
-  logo: {
-    width: 100,
-    height: 30,
-  },
-  profile: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-  },
-  content: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
     textAlign: 'center',
+  },
+  content: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
   infoRow: {
     flexDirection: 'row',
@@ -167,6 +265,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  participantName: {
+    color: '#ddd',
+    fontSize: 15,
+    marginTop: 4,
+  },
+  participantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
+  },
+  kickButton: {
+    backgroundColor: '#dc3545',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+  },
+  kickText: {
+    color: '#fff',
+    fontSize: 14,
+  },
   joinBtn: {
     marginTop: 30,
     backgroundColor: '#FF2E94',
@@ -174,9 +293,9 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     alignItems: 'center',
   },
-  messageButton: {
-    marginTop: 30,
-    backgroundColor: '#198754',
+  leaveButton: {
+    marginTop: 10,
+    backgroundColor: '#dc3545',
     paddingVertical: 14,
     borderRadius: 30,
     alignItems: 'center',
@@ -186,4 +305,19 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  editButton: {
+    marginTop: 20,
+    backgroundColor: '#FF2E94',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
+  messageButton: {
+    marginTop: 20,
+    backgroundColor: '#28a745',
+    paddingVertical: 14,
+    borderRadius: 30,
+    alignItems: 'center',
+  },
 });
+

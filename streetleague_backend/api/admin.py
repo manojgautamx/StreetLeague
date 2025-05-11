@@ -6,11 +6,16 @@ User = get_user_model()
 admin.site.register(User)
 
 class LeagueAdmin(admin.ModelAdmin):
-    list_display = ('name', 'sport', 'location', 'date_time', 'league_type', 'max_players', 'price', 'created_by')
-    list_editable = ('max_players', 'price')
-    list_filter = ('league_type', 'sport')
+    list_display = ('name', 'sport', 'location', 'date_time', 'league_type', 'max_players', 'price', 'created_by', 'is_full')
+    list_editable = ('max_players', 'price')  # Removed 'active'
+    list_filter = ('league_type', 'sport', 'date_time')  # Removed 'active'
     search_fields = ('name', 'sport', 'location', 'created_by__username')
     exclude = ('created_by',)
+
+    def is_full(self, obj):
+        return obj.is_full()
+    is_full.boolean = True
+    is_full.short_description = 'Full'
 
     def save_model(self, request, obj, form, change):
         if not change:

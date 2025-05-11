@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import register, CreateLeagueView, MyLeaguesView, PublicLeaguesView,join_league, joined_leagues, ChatView, update_league, delete_league, leave_league
+from .views import register, CreateLeagueView, MyLeaguesView, PublicLeaguesView,join_league, joined_leagues, ChatView, update_league, delete_league, leave_league, league_participants_view
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
@@ -22,4 +22,7 @@ urlpatterns = [
 
     path('delete-league/<int:league_id>/', delete_league, name='delete-league'),
     path('leave-league/<int:league_id>/', leave_league, name='leave-league'),
+
+    path('api/league-participants/<int:league_id>/', league_participants_view, name='league-participants'),
+   
 ]

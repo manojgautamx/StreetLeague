@@ -68,9 +68,11 @@ vendor/bundle/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+node_modules/ 
 
 
 # Example
+node_modules/
 .env
 dist/
 build/
@@ -83,17 +85,10 @@ build/
 local_settings.py
 settings_local.py
 
-# Firebase Service Account Key Files 
-streetleague_backend/firechats-57dba-firebase-adminsdk-fbsvc-cc1cee5457.json
-android/app/google-services.json
-streetleague_backend/streetleague_backend/firebase_config.py
-StreetLeague/src/utils/firebase.js
-
-
 # Python
 *.pyc
 *.pyo
-_pycache_/ 
+_pycache_/
 
 # Virtualenv (Django)
 env/
@@ -106,4 +101,4 @@ ENV/
 .vscode/
 
 # Other
-*.swpe
+*.swp

@@ -1,15 +1,22 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
-from django.utils import timezone  # ✅ Added for default datetime
+from django.utils import timezone
 
+# ✅ Custom User model
 class User(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="api_users", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="api_user_permissions", blank=True)
 
+# ✅ League model with status field (active/completed)
 class League(models.Model):
     LEAGUE_TYPE_CHOICES = [
         ('casual', 'Casual'),
         ('competitive', 'Competitive'),
+    ]
+
+    STATUS_CHOICES = [
+        ('active', 'Active'),
+        ('completed', 'Completed'),
     ]
 
     name = models.CharField(max_length=100)
@@ -18,31 +25,31 @@ class League(models.Model):
     location = models.CharField(max_length=255)
     latitude = models.FloatField()
     longitude = models.FloatField()
-    date_time = models.DateTimeField(default=timezone.now)  # ✅ Added default
+    date_time = models.DateTimeField()
     league_type = models.CharField(max_length=20, choices=LEAGUE_TYPE_CHOICES)
-
-    # 🔥 Optional fields for richer UX
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
     max_players = models.PositiveIntegerField(default=0)
     price = models.CharField(max_length=50, default="Free")
-
-    created_at = models.DateTimeField(default=timezone.now)  # ✅ Added with default
-
-    created_by = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='created_leagues',
-        null=True,
-        blank=True
-    )
-
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_leagues')
     participants = models.ManyToManyField(User, related_name='joined_leagues', blank=True)
 
     def __str__(self):
         return self.name
-    
+
     def is_full(self):
         return self.max_players > 0 and self.participants.count() >= self.max_players
 
+    def check_and_complete(self):
+        """
+        Automatically change the status to 'completed' if the current time
+        is past the league's date_time.
+        """
+        if self.date_time < timezone.now() and self.status != 'completed':
+            self.status = 'completed'
+            self.save()
+
+# ✅ Chat model associated with each League
 class Chat(models.Model):
     league = models.OneToOneField(League, on_delete=models.CASCADE, related_name="chat")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -50,6 +57,7 @@ class Chat(models.Model):
     def __str__(self):
         return f"Chat for {self.league.name}"
 
+# ✅ Message model to store chat messages
 class Message(models.Model):
     chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")

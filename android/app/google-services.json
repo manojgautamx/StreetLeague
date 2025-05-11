@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "597688465054",
+    "project_id": "firechats-57dba",
+    "storage_bucket": "firechats-57dba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597688465054:android:a26f055089f0779c482d8f",
+        "android_client_info": {
+          "package_name": "com.streetleague"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCc4Ifm3zcgicIMMRmlrg77lLXb6LFm0lo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

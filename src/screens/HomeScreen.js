@@ -211,7 +211,7 @@ const HomeScreen = () => {
         <TouchableOpacity onPress={() => navigation.navigate('Search')}>
           <Ionicons name="search" size={24} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Chat')}>
+        <TouchableOpacity>
           <Ionicons name="chatbubble-ellipses-outline" size={24} color="#fff" />
         </TouchableOpacity>
         <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
