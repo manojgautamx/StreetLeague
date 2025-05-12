@@ -11,10 +11,11 @@ import HomeScreen from '../screens/HomeScreen';
 import CreateLeagueScreen from '../screens/CreateLeagueScreen';
 import MapPickerScreen from '../screens/MapPickerScreen';
 import LeagueDescriptionScreen from '../screens/LeagueDescriptionScreen';
-import EditLeagueScreen from '../screens/EditLeagueScreen';
+import Search from '../screens/Search';
+import NotificationScreen from '../screens/NotificationsScreen';
 import ChatScreen from '../screens/ChatScreen';
-import BottomNavbar from '../components/BottomNavBar';
-import TopNavbar from '../components/TopNavBar';
+
+
 
 const Stack = createNativeStackNavigator();
 
@@ -37,11 +38,11 @@ export default function AppNavigator() {
           <Stack.Screen name="CreateLeague" component={CreateLeagueScreen} />
           <Stack.Screen name="MapPicker" component={MapPickerScreen} />
           <Stack.Screen name="LeagueDescription" component={LeagueDescriptionScreen} />
-          <Stack.Screen name="EditLeague" component={EditLeagueScreen} />
-          <Stack.Screen name="Chat" component={ChatScreen}/>
-          <Stack.Screen name="BottomNavBar" component={BottomNavbar}/>
-          <Stack.Screen name="TopNavBar" component={TopNavbar}/>
-          
+          <Stack.Screen name="Search" component={Search} />
+          <Stack.Screen name="Notifications" component={NotificationScreen} />
+          <Stack.Screen name="Chat" component={ChatScreen} />
+
+
         </>
       ) : (
         <>
@@ -49,7 +50,46 @@ export default function AppNavigator() {
           <Stack.Screen name="Signup" component={SignupScreen} />
         </>
       )}
+
     </Stack.Navigator>
   );
 }
 
+// export default function AppNavigator() {
+//   const [isLoading, setIsLoading] = useState(true);
+//   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+//   useEffect(() => {
+//     const checkAuth = async () => {
+//       const token = await AsyncStorage.getItem('accessToken');
+//       setIsLoggedIn(!!token);
+//       setIsLoading(false);
+//     };
+//     checkAuth();
+//   }, []);
+
+//   if (isLoading) {
+//     return (
+//       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+//         <ActivityIndicator size="large" color="#E81F89" />
+//       </View>
+//     );
+//   }
+
+//   return (
+//     <Stack.Navigator screenOptions={{ headerShown: false }}>
+//       {isLoggedIn ? (
+//         <>
+//           <Stack.Screen name="Home" component={HomeScreen} />
+//           <Stack.Screen name="CreateLeague" component={CreateLeagueScreen} />
+//           <Stack.Screen name="MapPicker" component={MapPickerScreen} />
+//         </>
+//       ) : (
+//         <>
+//           <Stack.Screen name="Login" component={LoginScreen} />
+//           <Stack.Screen name="Signup" component={SignupScreen} />
+//         </>
+//       )}
+//     </Stack.Navigator>
+//   );
+// }

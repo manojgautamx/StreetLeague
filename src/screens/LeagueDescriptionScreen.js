@@ -6,10 +6,40 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import useAxios from '../utils/useAxios';
+
+// Images
+import IndoorImg from '../assets/indoor.png';
+import OutdoorImg from '../assets/outdoor.png';
+import EsportImg from '../assets/esport.png';
+import DefaultImg from '../assets/default.png';
+
+const getSportImage = (sport) => {
+  const lower = sport?.toLowerCase();
+  if (!lower) return DefaultImg;
+
+  if (['futsal', 'football', 'cricket', 'volleyball', 'tennis',
+    'hockey', 'baseball', 'rugby', 'kabaddi', 'swimming',
+    'athletics', 'golf', 'cycling', 'archery', 'shooting'].includes(lower)) return OutdoorImg;
+
+  if (['basketball', 'badminton', 'table tennis', 'handball',
+    'chess', 'boxing', 'mma', 'wrestling', 'gymnastics',
+    'weightlifting', 'judo', 'karate', 'taekwondo', 'fencing'].includes(lower)) return IndoorImg;
+
+  if (['counter-strike', 'dota 2', 'league of legends', 'valorant',
+    'fortnite', 'pubg', 'apex legends', 'call of duty',
+    'rainbow six siege', 'rocket league', 'overwatch',
+    'hearthstone', 'fifa', 'nba 2k', 'starcraft ii',
+    'super smash bros', 'street fighter', 'tekken',
+    'mobile legends', 'free fire', 'wild rift', 'arena of valor',
+    'e-sports', 'esports'].includes(lower)) return EsportImg;
+    
+  return DefaultImg;
+};
 
 const LeagueDescriptionScreen = ({ route }) => {
   const navigation = useNavigation();
@@ -26,26 +56,24 @@ const LeagueDescriptionScreen = ({ route }) => {
     fetchParticipants();
   }, []);
 
-  // Fetch the updated list of participants and the host
   const fetchParticipants = async () => {
     try {
       const res = await axios.get(`/api/league-participants/${league.id}/`);
-      setHost(res.data.host);  // Store host information
-      setParticipants(res.data.participants);  // Store participants list
-      setCurrentUser(res.data.current_user);  // Store current user info
+      setHost(res.data.host);
+      setParticipants(res.data.participants);
+      setCurrentUser(res.data.current_user);
     } catch (error) {
       console.error('Failed to load participants', error);
     }
   };
 
-  // Handle joining the league
   const handleJoinLeague = async () => {
     try {
       setJoining(true);
-      await axios.post(`/api/join-league/${league.id}/`);  // API call to join league
+      await axios.post(`/api/join-league/${league.id}/`);
       Alert.alert('Success', 'You joined the league!');
       setIsJoined(true);
-      fetchParticipants();  // Update participants after joining
+      fetchParticipants();
     } catch (error) {
       console.error(error);
       Alert.alert('Error', error.response?.data?.detail || 'Failed to join league');
@@ -54,7 +82,6 @@ const LeagueDescriptionScreen = ({ route }) => {
     }
   };
 
-  // Handle leaving the league
   const handleLeaveLeague = () => {
     Alert.alert(
       'Confirm Leave',
@@ -67,10 +94,10 @@ const LeagueDescriptionScreen = ({ route }) => {
           onPress: async () => {
             try {
               setJoining(true);
-              await axios.post(`/api/leave-league/${league.id}/`);  // API call to leave league
+              await axios.post(`/api/leave-league/${league.id}/`);
               Alert.alert('Left', 'You have left the league.');
               setIsJoined(false);
-              fetchParticipants();  // Update participants after leaving
+              fetchParticipants();
             } catch (error) {
               console.error(error);
               Alert.alert('Error', error.response?.data?.detail || 'Failed to leave league');
@@ -84,7 +111,6 @@ const LeagueDescriptionScreen = ({ route }) => {
     );
   };
 
-  // Handle kicking a player from the league (only for the host)
   const handleKickPlayer = async (playerId) => {
     Alert.alert(
       'Confirm Kick',
@@ -98,7 +124,7 @@ const LeagueDescriptionScreen = ({ route }) => {
             try {
               await axios.post(`/api/kick-player/${league.id}/`, { player_id: playerId });
               Alert.alert('Success', 'Player has been kicked from the league.');
-              fetchParticipants();  // Update participants after kicking
+              fetchParticipants();
             } catch (error) {
               console.error(error);
               Alert.alert('Error', error.response?.data?.detail || 'Failed to kick player');
@@ -110,16 +136,14 @@ const LeagueDescriptionScreen = ({ route }) => {
     );
   };
 
-  // Navigate to Edit League screen (only for host)
   const handleEditLeague = () => {
     if (host && currentUser === host.id) {
-      navigation.navigate('EditLeague', { league });  // Pass the league object to edit
+      navigation.navigate('EditLeague', { league });
     } else {
       Alert.alert('Permission Denied', 'Only the host can edit the league.');
     }
   };
 
-  // Navigate to the Chat Screen
   const handleMessage = () => {
     navigation.navigate('Chat', { leagueId: league.id });
   };
@@ -135,6 +159,12 @@ const LeagueDescriptionScreen = ({ route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
+        {/* Top sport image */}
+        <Image
+          source={getSportImage(league.sport)}
+          style={styles.sportImage}
+        />
+
         <Text style={styles.title}>{league.name}</Text>
 
         <View style={styles.infoRow}>
@@ -176,7 +206,7 @@ const LeagueDescriptionScreen = ({ route }) => {
           <Text style={styles.descriptionText}>No participants yet.</Text>
         )}
 
-        {/* Join/Leave Button */}
+        {/* Join/Leave Buttons */}
         {isJoined ? (
           <TouchableOpacity
             style={styles.leaveButton}
@@ -195,7 +225,7 @@ const LeagueDescriptionScreen = ({ route }) => {
           </TouchableOpacity>
         )}
 
-        {/* Edit League Button (Only for Host) */}
+        {/* Host Only: Edit League */}
         {host && currentUser === host.id && (
           <TouchableOpacity
             style={styles.editButton}
@@ -205,7 +235,7 @@ const LeagueDescriptionScreen = ({ route }) => {
           </TouchableOpacity>
         )}
 
-        {/* Message Button (For all participants) */}
+        {/* All: Message League */}
         <TouchableOpacity
           style={styles.messageButton}
           onPress={handleMessage}
@@ -240,6 +270,12 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 20,
     paddingBottom: 40,
+  },
+  sportImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
@@ -320,4 +356,3 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 });
-

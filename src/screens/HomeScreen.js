@@ -14,15 +14,16 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import useAxios from '../utils/useAxios';
 import { AuthContext } from '../context/AuthContext';
+import BottomNavBar from '../components/BottomNavBar';
 
-// Import images
 import IndoorImg from '../assets/indoor.png';
 import OutdoorImg from '../assets/outdoor.png';
-import EsportImg from '../assets/E-sport.png';
-import DefaultImg from '../assets/default.png'; // You can add this fallback if needed
+import EsportImg from '../assets/esport.png';
+import DefaultImg from '../assets/default.png';
 
 const HomeScreen = () => {
   const [tab, setTab] = useState('Nearby');
+  const [activeTab, setActiveTab] = useState('Home');
   const [myLeagues, setMyLeagues] = useState([]);
   const [otherLeagues, setOtherLeagues] = useState([]);
   const [joinedLeagues, setJoinedLeagues] = useState([]);
@@ -32,42 +33,82 @@ const HomeScreen = () => {
   const axios = useAxios();
   const { logout } = useContext(AuthContext);
 
-  const fetchLeagues = async () => {
-    try {
-      setLoading(true);
-      const [myResponse, otherResponse, joinedResponse] = await Promise.all([
-        axios.get('/api/my-leagues/'),
-        axios.get('/api/public-leagues/'),
-        axios.get('/api/joined-leagues/'),
-      ]);
-      setMyLeagues(myResponse.data);
-      setOtherLeagues(otherResponse.data);
-      setJoinedLeagues(joinedResponse.data);
-    } catch (err) {
-      console.error('Error fetching leagues:', err);
-      setError(err.response?.data?.detail || 'Failed to fetch leagues');
-    } finally {
-      setLoading(false);
-    }
-  };
+const fetchLeagues = async () => {
+  try {
+    setLoading(true);
+
+    const [myResponse, joinedResponse, publicResponse] = await Promise.all([
+      axios.get('/api/my-leagues/'),
+      axios.get('/api/joined-leagues/'),
+      axios.get('/api/public-leagues/'),
+    ]);
+
+    const myLeaguesData = myResponse.data;
+    const joinedLeaguesData = joinedResponse.data;
+
+    const myLeagueIds = new Set(myLeaguesData.map((league) => league.id));
+
+    // Exclude leagues from "joined" if they are also in "my leagues"
+    const filteredJoinedLeagues = joinedLeaguesData.filter(
+      (league) => !myLeagueIds.has(league.id)
+    );
+
+    const joinedLeagueIds = new Set(filteredJoinedLeagues.map((league) => league.id));
+
+    // Exclude leagues that are in "my leagues" or "joined leagues" from "nearby"
+    const filteredOtherLeagues = publicResponse.data.filter(
+      (league) => !myLeagueIds.has(league.id) && !joinedLeagueIds.has(league.id)
+    );
+
+    setMyLeagues(myLeaguesData); // only created by user
+    setJoinedLeagues(filteredJoinedLeagues); // only joined, not created
+    setOtherLeagues(filteredOtherLeagues); // nearby = not joined or created
+  } catch (err) {
+    console.error('Error fetching leagues:', err);
+    setError(err.response?.data?.detail || 'Failed to fetch leagues');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchLeagues);
     return unsubscribe;
   }, [navigation]);
 
-  // 🟢 Image logic based on sport
   const getLeagueImageBySport = (sport) => {
     const sportLower = sport?.toLowerCase();
     if (!sportLower) return DefaultImg;
 
-    if (['football', 'cricket', 'rugby'].includes(sportLower)) {
-      return OutdoorImg;
-    } else if (['badminton', 'table tennis', 'basketball'].includes(sportLower)) {
-      return IndoorImg;
-    } else if (['e-sports', 'esports', 'valorant', 'csgo', 'fifa'].includes(sportLower)) {
-      return EsportImg;
-    }
+    const OUTDOOR_SPORTS = [
+      'futsal', 'football', 'cricket', 'volleyball', 'tennis',
+      'hockey', 'baseball', 'rugby', 'kabaddi', 'swimming',
+      'athletics', 'golf', 'cycling', 'archery', 'shooting'
+    ];
+
+    const INDOOR_SPORTS = [
+      'basketball', 'badminton', 'table tennis', 'handball',
+      'chess', 'boxing', 'mma', 'wrestling', 'gymnastics',
+      'weightlifting', 'judo', 'karate', 'taekwondo', 'fencing'
+    ];
+
+    const ESPORTS = [
+      'counter-strike', 'dota 2', 'league of legends', 'valorant',
+      'fortnite', 'pubg', 'apex legends', 'call of duty',
+      'rainbow six siege', 'rocket league', 'overwatch',
+      'hearthstone', 'fifa', 'nba 2k', 'starcraft ii',
+      'super smash bros', 'street fighter', 'tekken',
+      'mobile legends', 'free fire', 'wild rift', 'arena of valor',
+      'e-sports', 'esports'
+    ];
+
+    const inList = (list) => list.includes(sportLower);
+
+    if (inList(OUTDOOR_SPORTS)) return OutdoorImg;
+    if (inList(INDOOR_SPORTS)) return IndoorImg;
+    if (inList(ESPORTS)) return EsportImg;
+
     return DefaultImg;
   };
 
@@ -76,26 +117,20 @@ const HomeScreen = () => {
       onPress={() => navigation.navigate('LeagueDescription', { league: item })}
       style={styles.card}
     >
-      <Image
-        source={getLeagueImageBySport(item.sport)}
-        style={styles.cardImage}
-      />
+      <Image source={getLeagueImageBySport(item.sport)} style={styles.cardImage} />
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.name}</Text>
         <Text style={styles.cardDetail}>
-          <Ionicons name="football-outline" size={14} color="#ccc" /> {item.sport}    
-          <Ionicons name="people-outline" size={14} color="#ccc" /> {item.max_players}    
+          <Ionicons name="football-outline" size={14} color="#ccc" /> {item.sport}{' '}
+          <Ionicons name="people-outline" size={14} color="#ccc" /> {item.max_players}{' '}
           <Ionicons name="location-outline" size={14} color="#ccc" /> {item.location}
         </Text>
         <Text style={styles.cardDetail}>
-          <Ionicons name="calendar-outline" size={14} color="#ccc" /> {item.date_time}    
-          {item.league_type}
+          <Ionicons name="calendar-outline" size={14} color="#ccc" /> {item.date_time} {item.league_type}
         </Text>
       </View>
     </TouchableOpacity>
   );
-
-  const isNearby = tab === 'Nearby';
 
   if (loading) {
     return (
@@ -118,18 +153,15 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      {/* <View style={styles.navbar}>
+      <View style={styles.navbar}>
         <TouchableOpacity onPress={() => navigation.openDrawer()}>
           <Ionicons name="menu" size={26} color="#fff" />
         </TouchableOpacity>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <TouchableOpacity>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
-            style={styles.avatar}
-          />
+          <Image source={{ uri: 'https://i.pravatar.cc/150?img=12' }} style={styles.avatar} />
         </TouchableOpacity>
-      </View> */}
+      </View>
 
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
@@ -140,7 +172,6 @@ const HomeScreen = () => {
           <Ionicons name="chevron-forward" size={22} color="#fff" />
         </TouchableOpacity>
 
-        {/* Tabs */}
         <View style={styles.tabContainer}>
           <TouchableOpacity onPress={() => setTab('Nearby')}>
             <Text style={[styles.tab, tab === 'Nearby' && styles.activeTab]}>Nearby</Text>
@@ -150,7 +181,6 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Filter and Sort */}
         <View style={styles.filterRow}>
           <TouchableOpacity style={styles.filterOption}>
             <Ionicons name="filter" size={18} color="#fff" />
@@ -162,8 +192,7 @@ const HomeScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* League Cards */}
-        {isNearby ? (
+        {tab === 'Nearby' ? (
           otherLeagues.length === 0 ? (
             <Text style={styles.emptyText}>No nearby leagues found.</Text>
           ) : (
@@ -187,7 +216,6 @@ const HomeScreen = () => {
                 scrollEnabled={false}
               />
             )}
-
             <Text style={styles.sectionTitle}>My Leagues</Text>
             {myLeagues.length === 0 ? (
               <Text style={styles.emptyText}>You haven’t created any leagues yet.</Text>
@@ -203,26 +231,21 @@ const HomeScreen = () => {
         )}
       </ScrollView>
 
-      {/* Bottom Icon Bar */}
-      <View style={styles.bottomNav}>
-        <TouchableOpacity>
-          <Ionicons name="home" size={24} color="#E81F89" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-          <Ionicons name="search" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <Ionicons name="chatbubble-ellipses-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Notifications')}>
-          <Ionicons name="notifications-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <BottomNavBar activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  navbar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#111',
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 12,
+  },
   logo: {
     width: 36,
     height: 36,
@@ -337,15 +360,6 @@ const styles = StyleSheet.create({
   retryText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    backgroundColor: '#111',
-    paddingVertical: 12,
-    borderTopColor: '#222',
-    borderTopWidth: 1,
   },
 });
 

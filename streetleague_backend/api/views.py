@@ -10,8 +10,8 @@ from django.utils import timezone
 from streetleague_backend.firebase_config import db
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
-
-
+from rest_framework.permissions import AllowAny
+from django.db.models import Q
 
 User = get_user_model()
 
@@ -144,10 +144,11 @@ class MyLeaguesView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # Get leagues the authenticated user is participating in
-        leagues = League.objects.filter(participants=request.user)
+        # ✅ Only leagues created by the current user
+        leagues = League.objects.filter(created_by=request.user)
         serializer = LeagueSerializer(leagues, many=True, context={'request': request})
         return Response(serializer.data)
+
 
 # Edit League View (Only host can edit) #Not being used
 class EditLeagueView(APIView):
@@ -329,3 +330,20 @@ def view_user_profile(request, user_id):
         return Response({'detail': 'User not found.'}, status=404)
     except UserProfile.DoesNotExist:
         return Response({'detail': 'Profile not found for this user.'}, status=404)
+    
+    # 🔍 Enhanced Search View
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def search_leagues(request):
+    query = request.GET.get('search', '')  # ✅ Match frontend key
+    if query:
+        leagues = League.objects.filter(
+            Q(name__icontains=query) |
+            Q(sport__icontains=query) |
+            Q(location__icontains=query)
+        )
+    else:
+        leagues = League.objects.none()
+
+    serializer = LeagueSerializer(leagues, many=True)
+    return Response(serializer.data)

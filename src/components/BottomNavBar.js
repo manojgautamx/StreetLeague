@@ -1,50 +1,48 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 
-const BottomNavbar = () => {
+const BottomNavbar = ({ activeTab, onTabPress }) => {
+  const navigation = useNavigation();
+
+  const tabs = [
+    { name: 'Home', icon: 'home' },
+    { name: 'Search', icon: 'search' },
+    { name: 'Chat', icon: 'chatbubble-ellipses-outline' },
+    { name: 'Notifications', icon: 'notifications-outline' },
+  ];
+
   return (
-    <View style={styles.bottomBar}>
-      <TouchableOpacity style={styles.barItem}>
-        <Ionicons name="home" size={24} color="#E81F89" />
-        <Text style={styles.barLabel}>Home</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.barItem}>
-        <Ionicons name="search" size={24} color="#fff" />
-        <Text style={styles.barLabel}>Search</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.barItem}>
-        <Ionicons name="notifications-outline" size={24} color="#fff" />
-        <Text style={styles.barLabel}>Notifications</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.barItem}>
-        <Ionicons name="chatbubble-ellipses-outline" size={24} color="#fff" />
-        <Text style={styles.barLabel}>Chat</Text>
-      </TouchableOpacity>
+    <View style={styles.bottomNav}>
+      {tabs.map((tab) => (
+        <TouchableOpacity
+          key={tab.name}
+          onPress={() => {
+            onTabPress(tab.name);
+            navigation.navigate(tab.name);
+          }}
+        >
+          <Ionicons
+            name={tab.icon}
+            size={24}
+            color={activeTab === tab.name ? '#E81F89' : '#fff'}
+          />
+        </TouchableOpacity>
+      ))}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#1C1C1E',
+  bottomNav: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderTopWidth: 0.5,
-    borderTopColor: '#333',
-  },
-  barItem: {
     alignItems: 'center',
-  },
-  barLabel: {
-    color: '#fff',
-    fontSize: 12,
-    marginTop: 2,
+    backgroundColor: '#111',
+    paddingVertical: 12,
+    borderTopColor: '#222',
+    borderTopWidth: 1,
   },
 });
 
