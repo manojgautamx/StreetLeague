@@ -1,17 +1,17 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
-from rest_framework import status, permissions
+from rest_framework import status
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.db.models import Q
 from django.contrib.auth import get_user_model
+from .models import League
+from .serializers import LeagueSerializer
 
 User = get_user_model()
 
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import LeagueSerializer
-from .models import League
-
-# User Registration View
+# 🔐 Register New User
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
@@ -29,16 +29,16 @@ def register(request):
         return Response({'detail': 'Email already in use.'}, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=username, email=email, password=password)
-
     refresh = RefreshToken.for_user(user)
+
     return Response({
         'access': str(refresh.access_token),
         'refresh': str(refresh),
     }, status=status.HTTP_201_CREATED)
 
-# Create League View
+# 🏆 Create League
 class CreateLeagueView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request):
         serializer = LeagueSerializer(data=request.data)
@@ -47,43 +47,58 @@ class CreateLeagueView(APIView):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# List My Leagues View
+# 📋 My Leagues (created by user)
 class MyLeaguesView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         leagues = League.objects.filter(created_by=request.user)
         serializer = LeagueSerializer(leagues, many=True)
         return Response(serializer.data)
 
-
-# 🔥 NEW: List Public Leagues (not created by this user)
+# 🌍 Public Leagues (not created by user)
 class PublicLeaguesView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         leagues = League.objects.exclude(created_by=request.user)
         serializer = LeagueSerializer(leagues, many=True)
         return Response(serializer.data)
 
-
-# 🔥 NEW: Join League View
+# ➕ Join a League
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def join_league(request, league_id):
     try:
         league = League.objects.get(id=league_id)
         if request.user in league.participants.all():
-            return Response({'detail': 'You already joined this league.'}, status=400)
+            return Response({'detail': 'You already joined this league.'}, status=status.HTTP_400_BAD_REQUEST)
         league.participants.add(request.user)
-        return Response({'detail': 'Successfully joined the league.'}, status=200)
+        return Response({'detail': 'Successfully joined the league.'}, status=status.HTTP_200_OK)
     except League.DoesNotExist:
-        return Response({'detail': 'League not found.'}, status=404)
+        return Response({'detail': 'League not found.'}, status=status.HTTP_404_NOT_FOUND)
 
-# 🔥 NEW: List Joined Leagues (user is a participant but not creator)
+# ✅ Joined Leagues (user is a participant)
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
+@permission_classes([IsAuthenticated])
 def joined_leagues(request):
     leagues = League.objects.filter(participants=request.user).exclude(created_by=request.user)
+    serializer = LeagueSerializer(leagues, many=True)
+    return Response(serializer.data)
+
+# 🔍 Enhanced Search View
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def search_leagues(request):
+    query = request.GET.get('search', '')  # ✅ Match frontend key
+    if query:
+        leagues = League.objects.filter(
+            Q(name__icontains=query) |
+            Q(sport__icontains=query) |
+            Q(location__icontains=query)
+        )
+    else:
+        leagues = League.objects.none()
+
     serializer = LeagueSerializer(leagues, many=True)
     return Response(serializer.data)
