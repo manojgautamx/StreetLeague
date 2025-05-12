@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,51 +6,118 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Modal,
   Dimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { WebView } from 'react-native-webview';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axiosInstance from '../utils/axiosInstance';
 
 const { height } = Dimensions.get('window');
 
-const CreateLeagueScreen = () => {
+const CreateLeagueScreen = ({ navigation, route }) => {
   const [location, setLocation] = useState('');
+  const [latitude, setLatitude] = useState(null);
+  const [longitude, setLongitude] = useState(null);
   const [sport, setSport] = useState('');
   const [leagueName, setLeagueName] = useState('');
   const [description, setDescription] = useState('');
   const [isCasual, setIsCasual] = useState(true);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
-  const [showCalendar, setShowCalendar] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [maxPlayers, setMaxPlayers] = useState('');
+  const [price, setPrice] = useState('Free');
 
-  const onCreate = () => {
-    console.log({
-      location,
-      sport,
-      leagueName,
-      isCasual: isCasual ? 'Casual' : 'Competitive',
-      description,
-      date,
-      time,
-    });
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (location.length < 3) {
+        setSuggestions([]);
+        return;
+      }
+
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}`
+        );
+        const data = await res.json();
+        setSuggestions(data);
+      } catch (err) {
+        console.error('Location autocomplete error:', err);
+      }
+    };
+
+    const timeoutId = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(timeoutId);
+  }, [location]);
+
+  useEffect(() => {
+    if (route.params?.selectedLocation) {
+      const { latitude, longitude, display_name } = route.params.selectedLocation;
+      setLatitude(latitude);
+      setLongitude(longitude);
+      setLocation(display_name);
+      setSuggestions([]);
+    }
+  }, [route.params?.selectedLocation]);
+
+  const handleSuggestionPress = (item) => {
+    setLocation(item.display_name);
+    setLatitude(parseFloat(item.lat));
+    setLongitude(parseFloat(item.lon));
+    setSuggestions([]);
   };
 
-  const handleCalendarMessage = (event) => {
+  const onCreate = async () => {
+    if (!leagueName || !location || !sport || !date || !time || !maxPlayers) {
+      Alert.alert('Missing Fields', 'Please fill in all required fields.');
+      return;
+    }
+  
+    setLoading(true);
+    setError('');
+  
+    const payload = {
+      name: leagueName,
+      description,
+      sport,
+      location,
+      latitude,
+      longitude,
+      date_time: `${date}T${time}`,
+      league_type: isCasual ? 'casual' : 'competitive',
+      max_players: parseInt(maxPlayers),
+      price: price.trim().toLowerCase() === 'free' ? 0 : parseFloat(price),
+    };
+  
     try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.date && data.time) {
-        setDate(data.date);
-        setTime(data.time);
-      }
-      setShowCalendar(false);
-    } catch (error) {
-      console.error('Invalid calendar data:', error);
+      const token = await AsyncStorage.getItem('accessToken');
+  
+      await axiosInstance.post('http://10.0.2.2:8000/api/create-league/', payload);
+  
+      Alert.alert('Success', 'League created successfully!');
+      navigation.navigate('Home', { refresh: true });
+    } catch (err) {
+      console.error('Create league error:', err.message);
+      setError('Failed to create league.');
+    } finally {
+      setLoading(false);
     }
   };
+  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.header}>Create a League</Text>
+
+      {/* Location Input */}
       <Text style={styles.label}>Where are you hosting?</Text>
       <TextInput
         style={styles.input}
@@ -59,11 +126,42 @@ const CreateLeagueScreen = () => {
         placeholder="Location"
         placeholderTextColor="#888"
       />
-
-      <TouchableOpacity style={styles.mapBtn}>
+      {suggestions.map((item, index) => (
+        <TouchableOpacity
+          key={index}
+          style={styles.suggestionItem}
+          onPress={() => handleSuggestionPress(item)}
+        >
+          <Text style={{ color: '#fff' }}>{item.display_name}</Text>
+        </TouchableOpacity>
+      ))}
+      <TouchableOpacity style={styles.mapBtn} onPress={() => navigation.navigate('MapPicker')}>
         <Text style={styles.mapBtnText}>Choose on Map</Text>
       </TouchableOpacity>
 
+      {/* Map Preview */}
+      {latitude && longitude && (
+        <WebView
+          source={{
+            html: `
+              <html><body style="margin:0;padding:0;">
+                <div id="map" style="height:150px;width:100%"></div>
+                <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+                <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+                <script>
+                  var map = L.map('map').setView([${latitude}, ${longitude}], 13);
+                  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+                  L.marker([${latitude}, ${longitude}]).addTo(map);
+                </script>
+              </body></html>
+            `
+          }}
+          style={{ height: 150, marginTop: 10, borderRadius: 10 }}
+          scrollEnabled={false}
+        />
+      )}
+
+      {/* Sport */}
       <Text style={styles.label}>Choose the Sport</Text>
       <TextInput
         style={styles.input}
@@ -73,19 +171,20 @@ const CreateLeagueScreen = () => {
         placeholderTextColor="#888"
       />
 
+      {/* Date & Time */}
       <Text style={styles.label}>Time & Date</Text>
       <View style={styles.row}>
-        <TouchableOpacity style={styles.dateBtn} onPress={() => setShowCalendar(true)}>
+        <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerVisibility(true)}>
           <Icon name="calendar-outline" size={20} color="#fff" />
           <Text style={styles.dateText}>{date || 'Select Date'}</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.dateBtn} onPress={() => setShowCalendar(true)}>
+        <TouchableOpacity style={styles.dateBtn} onPress={() => setTimePickerVisibility(true)}>
           <Icon name="time-outline" size={20} color="#fff" />
           <Text style={styles.dateText}>{time || 'Select Time'}</Text>
         </TouchableOpacity>
       </View>
 
+      {/* League Name */}
       <Text style={styles.label}>Name your League</Text>
       <TextInput
         style={styles.input}
@@ -95,17 +194,35 @@ const CreateLeagueScreen = () => {
         placeholderTextColor="#888"
       />
 
+      {/* Casual/Competitive Toggle */}
       <Text style={styles.label}>Casual or Competitive</Text>
-      <TouchableOpacity
-        style={styles.casualBtn}
-        onPress={() => setIsCasual(!isCasual)}
-      >
-        <Text style={styles.casualText}>
-          {isCasual ? '⚪ Casual' : '🏆 Competitive'}
-        </Text>
+      <TouchableOpacity style={styles.casualBtn} onPress={() => setIsCasual(!isCasual)}>
+        <Text style={styles.casualText}>{isCasual ? '⚪ Casual' : '🏆 Competitive'}</Text>
         <Icon name="chevron-forward-outline" size={20} color="#fff" />
       </TouchableOpacity>
 
+      {/* Max Players */}
+      <Text style={styles.label}>Maximum Players</Text>
+      <TextInput
+        style={styles.input}
+        value={maxPlayers}
+        onChangeText={setMaxPlayers}
+        placeholder="e.g. 16"
+        placeholderTextColor="#888"
+        keyboardType="numeric"
+      />
+
+      {/* Price */}
+      <Text style={styles.label}>Price (leave as 'Free' if no cost)</Text>
+      <TextInput
+        style={styles.input}
+        value={price}
+        onChangeText={setPrice}
+        placeholder="Free or a price in numbers"
+        placeholderTextColor="#888"
+      />
+
+      {/* Description */}
       <Text style={styles.label}>Description</Text>
       <TextInput
         style={styles.textArea}
@@ -114,43 +231,37 @@ const CreateLeagueScreen = () => {
         placeholder="Tell more about the event..."
         placeholderTextColor="#888"
         multiline
-        numberOfLines={4}
       />
 
-      <TouchableOpacity style={styles.createBtn} onPress={onCreate}>
-        <Text style={styles.createText}>CREATE</Text>
+      {/* Error Message */}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {/* Submit Button */}
+      <TouchableOpacity style={styles.createBtn} onPress={onCreate} disabled={loading}>
+        {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createText}>CREATE</Text>}
       </TouchableOpacity>
 
-      <Modal visible={showCalendar} animationType="slide">
-        <WebView
-          source={{ uri: 'https://cal.com/sanji-62/30min' }}
-          onMessage={handleCalendarMessage}
-          injectedJavaScript={`
-            setTimeout(() => {
-              const btns = document.querySelectorAll('button');
-              btns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                  const selected = document.querySelector('[data-testid="selected-date"]');
-                  const timeSlot = document.querySelector('[data-testid="selected-time"]');
-                  if (selected && timeSlot) {
-                    window.ReactNativeWebView.postMessage(JSON.stringify({
-                      date: selected.textContent,
-                      time: timeSlot.textContent
-                    }));
-                  }
-                });
-              });
-            }, 2000);
-            true;
-          `}
-        />
-        <TouchableOpacity
-          onPress={() => setShowCalendar(false)}
-          style={{ position: 'absolute', top: 40, right: 20, zIndex: 99 }}
-        >
-          <Icon name="close-circle" size={30} color="#FF2E94" />
-        </TouchableOpacity>
-      </Modal>
+      {/* Date/Time Pickers */}
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={(selectedDate) => {
+          const formatted = selectedDate.toISOString().split('T')[0];
+          setDate(formatted);
+          setDatePickerVisibility(false);
+        }}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={(selectedTime) => {
+          const formatted = selectedTime.toTimeString().slice(0, 5);
+          setTime(formatted);
+          setTimePickerVisibility(false);
+        }}
+        onCancel={() => setTimePickerVisibility(false)}
+      />
     </ScrollView>
   );
 };
@@ -161,6 +272,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 60,
     minHeight: height,
+  },
+  header: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    color: '#fff',
+    textAlign: 'center',
   },
   label: {
     color: '#fff',
@@ -173,6 +291,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 12,
     color: '#fff',
+  },
+  suggestionItem: {
+    padding: 10,
+    backgroundColor: '#1e1e1e',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
   },
   mapBtn: {
     backgroundColor: '#FF2E94',
@@ -234,6 +358,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 10,
+    textAlign: 'center',
   },
 });
 
