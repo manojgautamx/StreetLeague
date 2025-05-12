@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from streetleague_backend.firebase_config import db
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+
 
 
 User = get_user_model()
@@ -69,17 +71,18 @@ class CreateLeagueView(APIView):
             except Exception as e:
                 return Response({'detail': f'Error creating chat in Firebase: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(LeagueSerializer(league, context={'request': request}).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# 🔥 NEW: List Joined Leagues (user is a participant but not creator)
+# 🔥 NEW: List Joined Leagues (user is a participant but not creator) 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def joined_leagues(request):
     leagues = League.objects.filter(participants=request.user).exclude(created_by=request.user)
-    serializer = LeagueSerializer(leagues, many=True)
+    serializer = LeagueSerializer(leagues, many=True, context={'request': request})
     return Response(serializer.data)
 
+#NOT BEING USED
 @api_view(['PUT'])
 @permission_classes([permissions.IsAuthenticated])
 def update_league(request, league_id):
@@ -118,7 +121,7 @@ def join_league(request, league_id):
     except League.DoesNotExist:
         return Response({'detail': 'League not found.'}, status=404)
 
-# Leave League View
+# Leave League View  ##ADDED 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def leave_league(request, league_id):
@@ -143,10 +146,10 @@ class MyLeaguesView(APIView):
     def get(self, request):
         # Get leagues the authenticated user is participating in
         leagues = League.objects.filter(participants=request.user)
-        serializer = LeagueSerializer(leagues, many=True)
+        serializer = LeagueSerializer(leagues, many=True, context={'request': request})
         return Response(serializer.data)
 
-# Edit League View (Only host can edit)
+# Edit League View (Only host can edit) #Not being used
 class EditLeagueView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -165,7 +168,7 @@ class EditLeagueView(APIView):
         except League.DoesNotExist:
             return Response({'detail': 'League not found.'}, status=404)
 
-# Delete League View
+# Delete League View  #HOST NOT BEING SEPERATED FROM PARTICIPANTS
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def delete_league(request, league_id):
@@ -192,7 +195,7 @@ class PublicLeaguesView(APIView):
     def get(self, request):
         # Fetch all public leagues (you can filter by conditions like 'active' status)
         leagues = League.objects.filter(status='active')  # Example condition for active leagues
-        serializer = LeagueSerializer(leagues, many=True)
+        serializer = LeagueSerializer(leagues, many=True, context={'request': request})
         return Response(serializer.data)
 
 # Chat View
@@ -264,6 +267,7 @@ class KickPlayerView(APIView):
         # Remove the player from the league
         league.participants.remove(player)
         return Response({"message": "Player has been kicked from the league."}, status=status.HTTP_200_OK)
+
         
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -290,3 +294,38 @@ def league_participants_view(request, league_id):
         return Response(data, status=200)
     except League.DoesNotExist:
         return Response({"detail": "League not found."}, status=404)
+
+
+class UserProfileCreateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        if hasattr(request.user, 'profile'):
+            return Response({'detail': 'Profile already exists.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = UserProfileSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get(self, request):
+        if not hasattr(request.user, 'profile'):
+            return Response({'detail': 'Profile not found.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserProfileSerializer(request.user.profile)
+        return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def view_user_profile(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        profile = user.profile
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+    except User.DoesNotExist:
+        return Response({'detail': 'User not found.'}, status=404)
+    except UserProfile.DoesNotExist:
+        return Response({'detail': 'Profile not found for this user.'}, status=404)

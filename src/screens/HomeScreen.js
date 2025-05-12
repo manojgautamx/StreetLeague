@@ -118,7 +118,7 @@ const HomeScreen = () => {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      <View style={styles.navbar}>
+      {/* <View style={styles.navbar}>
         <TouchableOpacity onPress={() => navigation.openDrawer()}>
           <Ionicons name="menu" size={26} color="#fff" />
         </TouchableOpacity>
@@ -129,7 +129,7 @@ const HomeScreen = () => {
             style={styles.avatar}
           />
         </TouchableOpacity>
-      </View>
+      </View> */}
 
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity
@@ -223,15 +223,6 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  navbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#111',
-    paddingHorizontal: 16,
-    paddingTop: 18,
-    paddingBottom: 12,
-  },
   logo: {
     width: 36,
     height: 36,

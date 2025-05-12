@@ -22,6 +22,11 @@ DerivedData
 *.xcuserstate
 **/.xcode.env.local
 
+
+#FIREBASE 
+streetleague_backend/firechats-57dba-firebase-adminsdk-fbsvc-cc1cee5457.json
+streetleague_backend\streetleague_backend\firebase_config.py
+
 # Android/IntelliJ
 #
 build/

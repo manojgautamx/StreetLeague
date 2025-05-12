@@ -1,11 +1,14 @@
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.utils import timezone
+from django.contrib import admin
+
 
 # ✅ Custom User model
 class User(AbstractUser):
     groups = models.ManyToManyField(Group, related_name="api_users", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="api_user_permissions", blank=True)
+
 
 # ✅ League model with status field (active/completed)
 class League(models.Model):
@@ -49,6 +52,7 @@ class League(models.Model):
             self.status = 'completed'
             self.save()
 
+
 # ✅ Chat model associated with each League
 class Chat(models.Model):
     league = models.OneToOneField(League, on_delete=models.CASCADE, related_name="chat")
@@ -56,6 +60,7 @@ class Chat(models.Model):
 
     def __str__(self):
         return f"Chat for {self.league.name}"
+
 
 # ✅ Message model to store chat messages
 class Message(models.Model):
@@ -66,3 +71,42 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.user.username} at {self.created_at}"
+
+
+# ✅ UserProfile model
+class UserProfile(models.Model):
+    GENDER_CHOICES = [
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    birth_date = models.DateField(blank=True, null=True)
+    bio = models.TextField(blank=True)
+    favorite_sports = models.CharField(max_length=255, blank=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True)
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"
+
+    def calculate_age(self):
+        from datetime import date
+        if not self.birth_date:
+            return None
+        today = date.today()
+        return today.year - self.birth_date.year - (
+            (today.month, today.day) < (self.birth_date.month, self.birth_date.day)
+        )
+
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ['user', 'get_leagues_created', 'get_leagues_joined']
+
+    def get_leagues_created(self, obj):
+        return obj.user.created_leagues.count()
+    get_leagues_created.short_description = 'Leagues Created'
+
+    def get_leagues_joined(self, obj):
+        return obj.user.joined_leagues.exclude(created_by=obj.user).count()
+    get_leagues_joined.short_description = 'Leagues Joined'

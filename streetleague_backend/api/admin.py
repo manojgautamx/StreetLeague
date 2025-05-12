@@ -1,9 +1,11 @@
 from django.contrib import admin
 from .models import League, Chat, Message
 from django.contrib.auth import get_user_model
+from .models import UserProfile, UserProfileAdmin
 
 User = get_user_model()
 admin.site.register(User)
+admin.site.register(UserProfile, UserProfileAdmin)
 
 class LeagueAdmin(admin.ModelAdmin):
     list_display = ('name', 'sport', 'location', 'date_time', 'league_type', 'max_players', 'price', 'created_by', 'is_full')

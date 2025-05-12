@@ -7,8 +7,8 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../utils/axiosInstance';
-import { db } from '../utils/firebase';
-import Navbar from '../components/Navbar';
+import { db } from '../utils/firebase'; // firebase.js file
+
 
 const ChatScreen = () => {
   const route = useRoute();
@@ -41,7 +41,7 @@ const ChatScreen = () => {
       const token = await AsyncStorage.getItem('accessToken');
       if (!token) {
         Alert.alert('Error', 'Authentication required');
-        return;
+        return ;
       }
 
       await axiosInstance.post(`/chat/${leagueId}/`, {
@@ -61,7 +61,8 @@ const ChatScreen = () => {
       setLoading(false);
     }
   };
-
+  
+// is mymessage not working 
   const renderItem = ({ item }) => {
     const isMyMessage = item.user_id === currentUserId;
     const avatar = item.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(item.sender)}`;
