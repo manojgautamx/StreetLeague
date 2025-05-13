@@ -9,7 +9,7 @@ const BottomNavbar = ({ activeTab, onTabPress }) => {
   const tabs = [
     { name: 'Home', icon: 'home' },
     { name: 'Search', icon: 'search' },
-    { name: 'Chat', icon: 'chatbubble-ellipses-outline' },
+    { name: 'ChatListScreens', icon: 'chatbubble-ellipses-outline' },
     { name: 'Notifications', icon: 'notifications-outline' },
   ];
 

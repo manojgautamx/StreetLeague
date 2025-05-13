@@ -14,7 +14,7 @@ import LeagueDescriptionScreen from '../screens/LeagueDescriptionScreen';
 import Search from '../screens/Search';
 import NotificationScreen from '../screens/NotificationsScreen';
 import ChatScreen from '../screens/ChatScreen';
-
+import ChatListScreens from '../screens/ChatListScreens';
 
 
 const Stack = createNativeStackNavigator();
@@ -41,7 +41,7 @@ export default function AppNavigator() {
           <Stack.Screen name="Search" component={Search} />
           <Stack.Screen name="Notifications" component={NotificationScreen} />
           <Stack.Screen name="Chat" component={ChatScreen} />
-
+          <Stack.Screen name="ChatListScreens" component={ChatListScreens} />
 
         </>
       ) : (

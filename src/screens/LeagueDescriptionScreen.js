@@ -46,7 +46,7 @@ const LeagueDescriptionScreen = ({ route }) => {
   const { league } = route.params;
   const axios = useAxios();
 
-  const [joining, setJoining] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isJoined, setIsJoined] = useState(league.is_joined);
   const [participants, setParticipants] = useState([]);
   const [host, setHost] = useState(null);
@@ -57,6 +57,7 @@ const LeagueDescriptionScreen = ({ route }) => {
   }, []);
 
   const fetchParticipants = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`/api/league-participants/${league.id}/`);
       setHost(res.data.host);
@@ -64,21 +65,24 @@ const LeagueDescriptionScreen = ({ route }) => {
       setCurrentUser(res.data.current_user);
     } catch (error) {
       console.error('Failed to load participants', error);
+      Alert.alert('Error', 'Failed to load participants.');
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleJoinLeague = async () => {
+    setLoading(true);
     try {
-      setJoining(true);
       await axios.post(`/api/join-league/${league.id}/`);
-      Alert.alert('Success', 'You joined the league!');
+      Alert.alert('Success', 'You have joined the league!');
       setIsJoined(true);
       fetchParticipants();
     } catch (error) {
-      console.error(error);
-      Alert.alert('Error', error.response?.data?.detail || 'Failed to join league');
+      console.error('Join error:', error);
+      Alert.alert('Error', error.response?.data?.detail || 'Failed to join the league');
     } finally {
-      setJoining(false);
+      setLoading(false);
     }
   };
 
@@ -92,17 +96,17 @@ const LeagueDescriptionScreen = ({ route }) => {
           text: 'Leave',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
-              setJoining(true);
               await axios.post(`/api/leave-league/${league.id}/`);
               Alert.alert('Left', 'You have left the league.');
               setIsJoined(false);
               fetchParticipants();
             } catch (error) {
-              console.error(error);
-              Alert.alert('Error', error.response?.data?.detail || 'Failed to leave league');
+              console.error('Leave error:', error);
+              Alert.alert('Error', error.response?.data?.detail || 'Failed to leave the league');
             } finally {
-              setJoining(false);
+              setLoading(false);
             }
           },
         },
@@ -114,20 +118,23 @@ const LeagueDescriptionScreen = ({ route }) => {
   const handleKickPlayer = async (playerId) => {
     Alert.alert(
       'Confirm Kick',
-      'Are you sure you want to kick this player out of the league?',
+      'Are you sure you want to kick this player from the league?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Kick',
           style: 'destructive',
           onPress: async () => {
+            setLoading(true);
             try {
               await axios.post(`/api/kick-player/${league.id}/`, { player_id: playerId });
               Alert.alert('Success', 'Player has been kicked from the league.');
               fetchParticipants();
             } catch (error) {
-              console.error(error);
+              console.error('Kick error:', error);
               Alert.alert('Error', error.response?.data?.detail || 'Failed to kick player');
+            } finally {
+              setLoading(false);
             }
           },
         },
@@ -137,10 +144,10 @@ const LeagueDescriptionScreen = ({ route }) => {
   };
 
   const handleEditLeague = () => {
-    if (host && currentUser === host.id) {
+    if ((host && currentUser === host.id) || currentUser === league.created_by) {
       navigation.navigate('EditLeague', { league });
     } else {
-      Alert.alert('Permission Denied', 'Only the host can edit the league.');
+      Alert.alert('Permission Denied', 'Only the host or the league creator can edit the league.');
     }
   };
 
@@ -150,7 +157,6 @@ const LeagueDescriptionScreen = ({ route }) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#fff" />
@@ -159,11 +165,7 @@ const LeagueDescriptionScreen = ({ route }) => {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* Top sport image */}
-        <Image
-          source={getSportImage(league.sport)}
-          style={styles.sportImage}
-        />
+        <Image source={getSportImage(league.sport)} style={styles.sportImage} />
 
         <Text style={styles.title}>{league.name}</Text>
 
@@ -171,19 +173,39 @@ const LeagueDescriptionScreen = ({ route }) => {
           <Icon name="sports-soccer" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.sport}</Text>
         </View>
+
         <View style={styles.infoRow}>
           <Icon name="location-on" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.location}</Text>
         </View>
+
         <View style={styles.infoRow}>
           <Icon name="event" size={20} color="#fff" style={styles.icon} />
           <Text style={styles.infoText}>{league.date_time}</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>Host</Text>
-        {host && (
-          <Text style={styles.participantName}>👑 {host.username}</Text>
-        )}
+        <View style={styles.infoRow}>
+          <Icon name="people" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.infoText}>Max Players: {league.max_players}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Icon name="description" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.infoText}>{league.description}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Icon name="attach-money" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.infoText}>Price: ${league.price}</Text>
+        </View>
+
+        <View style={styles.infoRow}>
+          <Icon name="map" size={20} color="#fff" style={styles.icon} />
+          <Text style={styles.infoText}>Latitude: {league.latitude}</Text>
+        </View>
+
+ 
+
 
         <Text style={styles.sectionTitle}>Participants</Text>
         {participants.length > 0 ? (
@@ -206,36 +228,33 @@ const LeagueDescriptionScreen = ({ route }) => {
           <Text style={styles.descriptionText}>No participants yet.</Text>
         )}
 
-        {/* Join/Leave Buttons */}
         {isJoined ? (
           <TouchableOpacity
             style={styles.leaveButton}
             onPress={handleLeaveLeague}
-            disabled={joining}
+            disabled={loading}
           >
-            <Text style={styles.joinText}>{joining ? 'Leaving...' : 'Leave League'}</Text>
+            <Text style={styles.joinText}>{loading ? 'Leaving...' : 'Leave League'}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={styles.joinBtn}
             onPress={handleJoinLeague}
-            disabled={joining}
+            disabled={loading}
           >
-            <Text style={styles.joinText}>{joining ? 'Joining...' : 'JOIN'}</Text>
+            <Text style={styles.joinText}>{loading ? 'Joining...' : 'JOIN'}</Text>
           </TouchableOpacity>
         )}
 
-        {/* Host Only: Edit League */}
-        {host && currentUser === host.id && (
+        {(host && currentUser === host.id) || currentUser === league.created_by ? (
           <TouchableOpacity
             style={styles.editButton}
             onPress={handleEditLeague}
           >
             <Text style={styles.joinText}>Edit League</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
 
-        {/* All: Message League */}
         <TouchableOpacity
           style={styles.messageButton}
           onPress={handleMessage}

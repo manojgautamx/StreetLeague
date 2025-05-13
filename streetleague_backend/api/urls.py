@@ -17,14 +17,14 @@ urlpatterns = [
     path('public-leagues/', PublicLeaguesView.as_view(), name='public-leagues'),
     path('join-league/<int:league_id>/', join_league, name='join-league'),
     path('joined-leagues/', joined_leagues, name='joined-leagues'),
-    path('api/update-league/<int:league_id>/', update_league, name='update-league'),
+    path('/update-league/<int:league_id>/', update_league, name='update-league'),
 
     path('chat/<int:league_id>/', ChatView.as_view(), name='chat'), #added for chats
 
     path('delete-league/<int:league_id>/', delete_league, name='delete-league'),
     path('leave-league/<int:league_id>/', leave_league, name='leave-league'),
 
-    path('api/league-participants/<int:league_id>/', league_participants_view, name='league-participants'),
+    path('/league-participants/<int:league_id>/', league_participants_view, name='league-participants'),
     
      # 🔍 Search endpoint
     path('search-leagues/', search_leagues, name='search-leagues'),
