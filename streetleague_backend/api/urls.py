@@ -1,8 +1,12 @@
 from django.urls import path
 from .views import register, CreateLeagueView, MyLeaguesView, PublicLeaguesView, join_league, joined_leagues, update_league, UserProfileCreateView, ProfileStatusView, UpdateProfileView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+<<<<<<< HEAD
 from django.conf import settings
 from django.conf.urls.static import static
+=======
+from .views import sport_suggestions
+>>>>>>> a906dcc909e39ebc5ff55f72003490669ad0f9c9
 
 urlpatterns = [
     path('register/', register, name='register'),  # Ensure this is correct
@@ -15,10 +19,15 @@ urlpatterns = [
     path('public-leagues/', PublicLeaguesView.as_view(), name='public-leagues'),
     path('join-league/<int:league_id>/', join_league, name='join-league'),
     path('joined-leagues/', joined_leagues, name='joined-leagues'),
+<<<<<<< HEAD
     path('update-league/<int:league_id>/', update_league, name='update-league'),
     # ✅ User profile endpoints
     path('profile/', UserProfileCreateView.as_view(), name='user-profile'),
     path('profile/status/', ProfileStatusView.as_view(), name='profile-status'),
     path('profile/update/', UpdateProfileView.as_view(), name='update-profile'),
+=======
+    path('api/update-league/<int:league_id>/', update_league, name='update-league'),
+    path('api/sports/suggestions/', sport_suggestions, name='sport-suggestions'),
+>>>>>>> a906dcc909e39ebc5ff55f72003490669ad0f9c9
 ]
 
