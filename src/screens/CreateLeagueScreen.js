@@ -18,11 +18,38 @@ import axiosInstance from '../utils/axiosInstance';
 
 const { height } = Dimensions.get('window');
 
+const ALL_SPORTS = [
+  'Football', 'Futsal', 'Floorball', 'Field Hockey', 'Frisbee', 'Fishing',
+  'Basketball', 'Baseball', 'Badminton', 'Boxing', 'Bowling', 'Billiards',
+  'Cricket', 'Cycling', 'Climbing', 'CrossFit', 'Curling',
+  'Dodgeball', 'Darts', 'Disc Golf',
+  'Esports', 'E-soccer', 'E-racing',
+  'Golf', 'Gymnastics',
+  'Handball', 'Hiking', 'Horse Riding',
+  'Ice Hockey', 'Indoor Soccer', 'Inline Skating',
+  'Judo', 'Jiu Jitsu', 'Jet Skiing',
+  'Karate', 'Kayaking', 'Kendo', 'Kickboxing', 'Kite Surfing',
+  'Lacrosse', 'Laser Tag',
+  'Martial Arts', 'MMA', 'Mountain Biking',
+  'Netball', 'Nordic Skiing',
+  'Paintball', 'Paragliding', 'Parkour', 'Paddle Tennis', 'Ping Pong',
+  'Quidditch',
+  'Rugby', 'Racquetball', 'Rock Climbing', 'Rowing', 'Roller Derby',
+  'Skating', 'Skateboarding', 'Snooker', 'Snowboarding', 'Skiing', 'Squash', 'Surfing', 'Swimming',
+  'Tennis', 'Table Tennis', 'Taekwondo', 'Track and Field', 'Triathlon',
+  'Ultimate Frisbee', 'Underwater Hockey',
+  'Volleyball',
+  'Wrestling', 'Weightlifting', 'Walking', 'Wakeboarding', 'Windsurfing',
+  'Yoga',
+  'Zumba'
+];
+
 const CreateLeagueScreen = ({ navigation, route }) => {
   const [location, setLocation] = useState('');
   const [latitude, setLatitude] = useState(null);
   const [longitude, setLongitude] = useState(null);
   const [sport, setSport] = useState('');
+  const [sportSuggestions, setSportSuggestions] = useState([]);
   const [leagueName, setLeagueName] = useState('');
   const [description, setDescription] = useState('');
   const [isCasual, setIsCasual] = useState(true);
@@ -68,6 +95,15 @@ const CreateLeagueScreen = ({ navigation, route }) => {
     }
   }, [route.params?.selectedLocation]);
 
+  useEffect(() => {
+    if (sport.length > 0) {
+      const filtered = ALL_SPORTS.filter(s => s.toLowerCase().startsWith(sport.toLowerCase()));
+      setSportSuggestions(filtered);
+    } else {
+      setSportSuggestions([]);
+    }
+  }, [sport]);
+
   const handleSuggestionPress = (item) => {
     setLocation(item.display_name);
     setLatitude(parseFloat(item.lat));
@@ -75,15 +111,20 @@ const CreateLeagueScreen = ({ navigation, route }) => {
     setSuggestions([]);
   };
 
+  const handleSportSuggestionPress = (suggestedSport) => {
+    setSport(suggestedSport);
+    setSportSuggestions([]);
+  };
+
   const onCreate = async () => {
     if (!leagueName || !location || !sport || !date || !time || !maxPlayers) {
       Alert.alert('Missing Fields', 'Please fill in all required fields.');
       return;
     }
-  
+
     setLoading(true);
     setError('');
-  
+
     const payload = {
       name: leagueName,
       description,
@@ -96,12 +137,10 @@ const CreateLeagueScreen = ({ navigation, route }) => {
       max_players: parseInt(maxPlayers),
       price: price.trim().toLowerCase() === 'free' ? 0 : parseFloat(price),
     };
-  
+
     try {
       const token = await AsyncStorage.getItem('accessToken');
-  
       await axiosInstance.post('http://10.0.2.2:8000/api/create-league/', payload);
-  
       Alert.alert('Success', 'League created successfully!');
       navigation.navigate('Home', { refresh: true });
     } catch (err) {
@@ -111,13 +150,16 @@ const CreateLeagueScreen = ({ navigation, route }) => {
       setLoading(false);
     }
   };
-  
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <Icon name="arrow-back" size={24} color="#fff" />
+        <Text style={styles.backText}>Back</Text>
+      </TouchableOpacity>
+
       <Text style={styles.header}>Create a League</Text>
 
-      {/* Location Input */}
       <Text style={styles.label}>Where are you hosting?</Text>
       <TextInput
         style={styles.input}
@@ -139,7 +181,6 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         <Text style={styles.mapBtnText}>Choose on Map</Text>
       </TouchableOpacity>
 
-      {/* Map Preview */}
       {latitude && longitude && (
         <WebView
           source={{
@@ -161,7 +202,6 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         />
       )}
 
-      {/* Sport */}
       <Text style={styles.label}>Choose the Sport</Text>
       <TextInput
         style={styles.input}
@@ -170,8 +210,16 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         placeholder="Type a sport..."
         placeholderTextColor="#888"
       />
+      {sportSuggestions.map((s, index) => (
+        <TouchableOpacity
+          key={index}
+          style={styles.suggestionItem}
+          onPress={() => handleSportSuggestionPress(s)}
+        >
+          <Text style={{ color: '#fff' }}>{s}</Text>
+        </TouchableOpacity>
+      ))}
 
-      {/* Date & Time */}
       <Text style={styles.label}>Time & Date</Text>
       <View style={styles.row}>
         <TouchableOpacity style={styles.dateBtn} onPress={() => setDatePickerVisibility(true)}>
@@ -184,7 +232,6 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
 
-      {/* League Name */}
       <Text style={styles.label}>Name your League</Text>
       <TextInput
         style={styles.input}
@@ -194,14 +241,12 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         placeholderTextColor="#888"
       />
 
-      {/* Casual/Competitive Toggle */}
       <Text style={styles.label}>Casual or Competitive</Text>
       <TouchableOpacity style={styles.casualBtn} onPress={() => setIsCasual(!isCasual)}>
         <Text style={styles.casualText}>{isCasual ? '⚪ Casual' : '🏆 Competitive'}</Text>
         <Icon name="chevron-forward-outline" size={20} color="#fff" />
       </TouchableOpacity>
 
-      {/* Max Players */}
       <Text style={styles.label}>Maximum Players</Text>
       <TextInput
         style={styles.input}
@@ -212,7 +257,6 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         keyboardType="numeric"
       />
 
-      {/* Price */}
       <Text style={styles.label}>Price (leave as 'Free' if no cost)</Text>
       <TextInput
         style={styles.input}
@@ -222,7 +266,6 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         placeholderTextColor="#888"
       />
 
-      {/* Description */}
       <Text style={styles.label}>Description</Text>
       <TextInput
         style={styles.textArea}
@@ -233,15 +276,12 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         multiline
       />
 
-      {/* Error Message */}
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-      {/* Submit Button */}
       <TouchableOpacity style={styles.createBtn} onPress={onCreate} disabled={loading}>
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.createText}>CREATE</Text>}
       </TouchableOpacity>
 
-      {/* Date/Time Pickers */}
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="date"
@@ -252,6 +292,7 @@ const CreateLeagueScreen = ({ navigation, route }) => {
         }}
         onCancel={() => setDatePickerVisibility(false)}
       />
+
       <DateTimePickerModal
         isVisible={isTimePickerVisible}
         mode="time"
@@ -272,6 +313,16 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 60,
     minHeight: height,
+  },
+  backBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backText: {
+    color: '#fff',
+    fontSize: 16,
+    marginLeft: 5,
   },
   header: {
     fontSize: 28,

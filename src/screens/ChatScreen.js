@@ -8,7 +8,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axiosInstance from '../utils/axiosInstance';
 import { db } from '../utils/firebase';
-import BottomNavBar from '../components/BottomNavBar';
+import BottomNavBar from '../components/BottomNavbar';
 
 const ChatScreen = () => {
   const route = useRoute();

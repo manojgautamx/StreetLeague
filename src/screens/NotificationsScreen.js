@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import BottomNavbar from '../components/BottomNavBar';
+import BottomNavbar from '../components/BottomNavbar';
 
 const notifications = [
   {

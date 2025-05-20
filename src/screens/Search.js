@@ -16,7 +16,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 import useAxios from '../utils/useAxios';
 import { useNavigation } from '@react-navigation/native';
 
-import BottomNavbar from '../components/BottomNavBar';
+import BottomNavbar from '../components/BottomNavbar';
 
 import IndoorImg from '../assets/indoor.png';
 import OutdoorImg from '../assets/outdoor.png';

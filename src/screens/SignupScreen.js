@@ -9,6 +9,7 @@
     Image,
   } from 'react-native';
   import { register } from '../services/api';
+  
 
   export default function SignupScreen({ navigation }) {
     const [username, setUsername] = useState('');
