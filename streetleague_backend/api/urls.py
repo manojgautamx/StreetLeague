@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (register, CreateLeagueView, MyLeaguesView, PublicLeaguesView,join_league, joined_leagues, ChatView, update_league, delete_league, leave_league, league_participants_view, search_leagues
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from . import views
 urlpatterns = [
     path('register/', register, name='register'),  
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -27,7 +27,7 @@ urlpatterns = [
     path('/league-participants/<int:league_id>/', league_participants_view, name='league-participants'),
     
      # 🔍 Search endpoint
-    path('search-leagues/', search_leagues, name='search-leagues'),
+    path('search-leagues/', views.search_leagues, name='search-leagues'),
 
    
 ]

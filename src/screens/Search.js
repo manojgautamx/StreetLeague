@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,7 +15,6 @@ import {
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import useAxios from '../utils/useAxios';
 import { useNavigation } from '@react-navigation/native';
-
 import BottomNavbar from '../components/BottomNavBar';
 
 import IndoorImg from '../assets/indoor.png';
@@ -32,47 +31,27 @@ const SearchScreen = () => {
   const navigation = useNavigation();
   const [activeTab, setActiveTab] = useState('Search');
 
-  const getLeagueImageBySport = (sport) => {
-    const sportLower = sport?.toLowerCase();
-    if (!sportLower) return DefaultImg;
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (query.trim().length > 0) {
+        handleSearch(query);
+      } else {
+        setResults([]);
+      }
+    }, 300);
 
-    const OUTDOOR_SPORTS = ['futsal', 'football', 'cricket', 'volleyball', 'tennis',
-    'hockey', 'baseball', 'rugby', 'kabaddi', 'swimming',
-    'athletics', 'golf', 'cycling', 'archery', 'shooting'
-  ];
-    const INDOOR_SPORTS = ['basketball', 'badminton', 'table tennis', 'handball',
-    'chess', 'boxing', 'mma', 'wrestling', 'gymnastics',
-    'weightlifting', 'judo', 'karate', 'taekwondo', 'fencing'
-  ];
+    return () => clearTimeout(delayDebounce);
+  }, [query]);
 
-    const ESPORTS = ['counter-strike', 'dota 2', 'league of legends', 'valorant',
-    'fortnite', 'pubg', 'apex legends', 'call of duty',
-    'rainbow six siege', 'rocket league', 'overwatch',
-    'hearthstone', 'fifa', 'nba 2k', 'starcraft ii',
-    'super smash bros', 'street fighter', 'tekken',
-    'mobile legends', 'free fire', 'wild rift', 'arena of valor',
-    'e-sports', 'esports'
-  ];
-
-    if (OUTDOOR_SPORTS.includes(sportLower)) return OutdoorImg;
-    if (INDOOR_SPORTS.includes(sportLower)) return IndoorImg;
-    if (ESPORTS.includes(sportLower)) return EsportImg;
-
-    return DefaultImg;
-  };
-
-  const handleSearch = async () => {
-    if (!query.trim()) return;
-
+  const handleSearch = async (inputQuery) => {
     try {
       setLoading(true);
       setError('');
-      const res = await axios.get(`/api/search-leagues/?search=${encodeURIComponent(query)}`);
-
+      const res = await axios.get(`/api/search-leagues/?search=${encodeURIComponent(inputQuery)}`);
       setResults(res.data);
     } catch (err) {
       console.error('Search error:', err);
-      setError('Something went wrong during search.');
+      setError('Something went wrong while searching.');
     } finally {
       setLoading(false);
     }
@@ -81,6 +60,39 @@ const SearchScreen = () => {
   const clearSearch = () => {
     setQuery('');
     setResults([]);
+  };
+
+  const getLeagueImageBySport = (sport) => {
+    const sportLower = sport?.toLowerCase();
+    if (!sportLower) return DefaultImg;
+
+const OUTDOOR_SPORTS = [
+  'football', 'soccer', 'futsal', 'cricket', 'volleyball', 'tennis',
+  'hockey', 'rugby', 'golf', 'cycling', 'baseball', 'kabaddi', 'archery',
+  'swimming', 'athletics', 'track and field', 'rowing', 'canoeing',
+  'mountain biking', 'triathlon', 'softball'
+];
+
+const INDOOR_SPORTS = [
+  'badminton', 'table tennis', 'basketball', 'boxing', 'karate',
+  'judo', 'taekwondo', 'wrestling', 'gymnastics', 'handball', 'squash',
+  'weightlifting', 'fencing', 'chess', 'snooker', 'billiards',
+  'mma', 'muay thai', 'kickboxing'
+];
+
+const ESPORTS = [
+  'valorant', 'dota 2', 'pubg', 'fifa', 'esports', 'counter-strike',
+  'league of legends', 'fortnite', 'apex legends', 'call of duty',
+  'overwatch', 'rocket league', 'rainbow six siege', 'hearthstone',
+  'starcraft ii', 'mobile legends', 'free fire', 'wild rift',
+  'arena of valor', 'nba 2k', 'super smash bros', 'street fighter', 'tekken'
+];
+
+    if (OUTDOOR_SPORTS.includes(sportLower)) return OutdoorImg;
+    if (INDOOR_SPORTS.includes(sportLower)) return IndoorImg;
+    if (ESPORTS.includes(sportLower)) return EsportImg;
+
+    return DefaultImg;
   };
 
   const renderLeagueCard = ({ item }) => (
@@ -97,8 +109,7 @@ const SearchScreen = () => {
           <Ionicons name="location-outline" size={14} color="#ccc" /> {item.location}
         </Text>
         <Text style={styles.cardDetail}>
-          <Ionicons name="calendar-outline" size={14} color="#ccc" /> {item.date_time}{' '}
-          {item.league_type}
+          <Ionicons name="calendar-outline" size={14} color="#ccc" /> {item.date_time} {item.league_type}
         </Text>
       </View>
     </TouchableOpacity>
@@ -118,7 +129,6 @@ const SearchScreen = () => {
             placeholderTextColor="#aaa"
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={handleSearch}
             returnKeyType="search"
           />
           {query.trim().length > 0 && (
@@ -132,7 +142,7 @@ const SearchScreen = () => {
 
         {error ? (
           <Text style={styles.errorText}>{error}</Text>
-        ) : results.length === 0 && query.trim() !== '' && !loading ? (
+        ) : results.length === 0 && query.trim().length >= 3 && !loading ? (
           <Text style={styles.emptyText}>No leagues found for "{query}"</Text>
         ) : (
           <FlatList
@@ -140,13 +150,14 @@ const SearchScreen = () => {
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderLeagueCard}
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ paddingBottom: 140 }} // <- important fix here
+            contentContainerStyle={{ paddingBottom: 140 }}
           />
         )}
       </KeyboardAvoidingView>
 
       <BottomNavbar activeTab={activeTab} onTabPress={setActiveTab} />
     </SafeAreaView>
+    
   );
 };
 

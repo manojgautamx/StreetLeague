@@ -9,127 +9,108 @@ import {
   ScrollView,
   Image,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import useAxios from '../utils/useAxios';
 import { AuthContext } from '../context/AuthContext';
 import BottomNavBar from '../components/BottomNavBar';
-
-import IndoorImg from '../assets/indoor.png';
-import OutdoorImg from '../assets/outdoor.png';
-import EsportImg from '../assets/esport.png';
-import DefaultImg from '../assets/default.png';
+import LeagueCard from '../components/LeagueCard';
 
 const HomeScreen = () => {
   const [tab, setTab] = useState('Nearby');
   const [activeTab, setActiveTab] = useState('Home');
   const [myLeagues, setMyLeagues] = useState([]);
-  const [otherLeagues, setOtherLeagues] = useState([]);
   const [joinedLeagues, setJoinedLeagues] = useState([]);
+  const [otherLeagues, setOtherLeagues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigation = useNavigation();
   const axios = useAxios();
   const { logout } = useContext(AuthContext);
 
-const fetchLeagues = async () => {
-  try {
-    setLoading(true);
+  const fetchLeagues = async () => {
+    try {
+      setLoading(true);
 
-    const [myResponse, joinedResponse, publicResponse] = await Promise.all([
-      axios.get('/api/my-leagues/'),
-      axios.get('/api/joined-leagues/'),
-      axios.get('/api/public-leagues/'),
-    ]);
+      const [myRes, joinedRes, publicRes] = await Promise.all([
+        axios.get('/api/my-leagues/'),
+        axios.get('/api/joined-leagues/'),
+        axios.get('/api/public-leagues/'),
+      ]);
 
-    const myLeaguesData = myResponse.data;
-    const joinedLeaguesData = joinedResponse.data;
+      const myData = myRes.data;
+      const joinedData = joinedRes.data;
 
-    const myLeagueIds = new Set(myLeaguesData.map((league) => league.id));
+      const myIds = new Set(myData.map((l) => l.id));
+      const filteredJoined = joinedData.filter((l) => !myIds.has(l.id));
 
-    // Exclude leagues from "joined" if they are also in "my leagues"
-    const filteredJoinedLeagues = joinedLeaguesData.filter(
-      (league) => !myLeagueIds.has(league.id)
-    );
+      const joinedIds = new Set(filteredJoined.map((l) => l.id));
+      const filteredPublic = publicRes.data.filter(
+        (l) => !myIds.has(l.id) && !joinedIds.has(l.id)
+      );
 
-    const joinedLeagueIds = new Set(filteredJoinedLeagues.map((league) => league.id));
-
-    // Exclude leagues that are in "my leagues" or "joined leagues" from "nearby"
-    const filteredOtherLeagues = publicResponse.data.filter(
-      (league) => !myLeagueIds.has(league.id) && !joinedLeagueIds.has(league.id)
-    );
-
-    setMyLeagues(myLeaguesData); // only created by user
-    setJoinedLeagues(filteredJoinedLeagues); // only joined, not created
-    setOtherLeagues(filteredOtherLeagues); // nearby = not joined or created
-  } catch (err) {
-    console.error('Error fetching leagues:', err);
-    setError(err.response?.data?.detail || 'Failed to fetch leagues');
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setMyLeagues(myData);
+      setJoinedLeagues(filteredJoined);
+      setOtherLeagues(filteredPublic);
+    } catch (err) {
+      console.error('Error fetching leagues:', err);
+      setError(err.response?.data?.detail || 'Failed to fetch leagues');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('focus', fetchLeagues);
     return unsubscribe;
   }, [navigation]);
 
-  const getLeagueImageBySport = (sport) => {
-    const sportLower = sport?.toLowerCase();
-    if (!sportLower) return DefaultImg;
-
-    const OUTDOOR_SPORTS = [
-      'futsal', 'football', 'cricket', 'volleyball', 'tennis',
-      'hockey', 'baseball', 'rugby', 'kabaddi', 'swimming',
-      'athletics', 'golf', 'cycling', 'archery', 'shooting'
-    ];
-
-    const INDOOR_SPORTS = [
-      'basketball', 'badminton', 'table tennis', 'handball',
-      'chess', 'boxing', 'mma', 'wrestling', 'gymnastics',
-      'weightlifting', 'judo', 'karate', 'taekwondo', 'fencing'
-    ];
-
-    const ESPORTS = [
-      'counter-strike', 'dota 2', 'league of legends', 'valorant',
-      'fortnite', 'pubg', 'apex legends', 'call of duty',
-      'rainbow six siege', 'rocket league', 'overwatch',
-      'hearthstone', 'fifa', 'nba 2k', 'starcraft ii',
-      'super smash bros', 'street fighter', 'tekken',
-      'mobile legends', 'free fire', 'wild rift', 'arena of valor',
-      'e-sports', 'esports'
-    ];
-
-    const inList = (list) => list.includes(sportLower);
-
-    if (inList(OUTDOOR_SPORTS)) return OutdoorImg;
-    if (inList(INDOOR_SPORTS)) return IndoorImg;
-    if (inList(ESPORTS)) return EsportImg;
-
-    return DefaultImg;
+  const handleLeaguePress = (league) => {
+    navigation.navigate('LeagueDescription', { league, source: tab.toLowerCase() });
   };
 
-  const renderLeagueCard = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('LeagueDescription', { league: item })}
-      style={styles.card}
-    >
-      <Image source={getLeagueImageBySport(item.sport)} style={styles.cardImage} />
-      <View style={styles.cardContent}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardDetail}>
-          <Ionicons name="football-outline" size={14} color="#ccc" /> {item.sport}{' '}
-          <Ionicons name="people-outline" size={14} color="#ccc" /> {item.max_players}{' '}
-          <Ionicons name="location-outline" size={14} color="#ccc" /> {item.location}
-        </Text>
-        <Text style={styles.cardDetail}>
-          <Ionicons name="calendar-outline" size={14} color="#ccc" /> {item.date_time} {item.league_type}
-        </Text>
-      </View>
-    </TouchableOpacity>
+  const handleEditLeague = (league) => {
+    navigation.navigate('EditLeague', { league });
+  };
+
+  const handleDeleteLeague = (league) => {
+    Alert.alert(
+      'Delete League',
+      `Are you sure you want to delete "${league.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await axios.delete(`/api/leagues/${league.id}/`);
+              fetchLeagues();
+            } catch (err) {
+              console.error('Failed to delete league', err);
+              Alert.alert('Error', 'Failed to delete league.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  const renderLeagueList = (leagues) => (
+    <FlatList
+      data={leagues}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => (
+        <LeagueCard league={item} onPress={() => handleLeaguePress(item)} />
+      )}
+      scrollEnabled={false}
+    />
   );
 
   if (loading) {
@@ -159,7 +140,10 @@ const fetchLeagues = async () => {
         </TouchableOpacity>
         <Image source={require('../assets/logo.png')} style={styles.logo} />
         <TouchableOpacity>
-          <Image source={{ uri: 'https://i.pravatar.cc/150?img=12' }} style={styles.avatar} />
+          <Image
+            source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
+            style={styles.avatar}
+          />
         </TouchableOpacity>
       </View>
 
@@ -174,10 +158,14 @@ const fetchLeagues = async () => {
 
         <View style={styles.tabContainer}>
           <TouchableOpacity onPress={() => setTab('Nearby')}>
-            <Text style={[styles.tab, tab === 'Nearby' && styles.activeTab]}>Nearby</Text>
+            <Text style={[styles.tab, tab === 'Nearby' && styles.activeTab]}>
+              Nearby
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setTab('Joined')}>
-            <Text style={[styles.tab, tab === 'Joined' && styles.activeTab]}>Joined Leagues</Text>
+            <Text style={[styles.tab, tab === 'Joined' && styles.activeTab]}>
+              Joined Leagues
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -196,26 +184,17 @@ const fetchLeagues = async () => {
           otherLeagues.length === 0 ? (
             <Text style={styles.emptyText}>No nearby leagues found.</Text>
           ) : (
-            <FlatList
-              data={otherLeagues}
-              keyExtractor={(item) => item.id.toString()}
-              renderItem={renderLeagueCard}
-              scrollEnabled={false}
-            />
+            renderLeagueList(otherLeagues)
           )
         ) : (
-          <View>
+          <>
             <Text style={styles.sectionTitle}>Joined Leagues</Text>
             {joinedLeagues.length === 0 ? (
               <Text style={styles.emptyText}>You haven’t joined any leagues yet.</Text>
             ) : (
-              <FlatList
-                data={joinedLeagues}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderLeagueCard}
-                scrollEnabled={false}
-              />
+              renderLeagueList(joinedLeagues)
             )}
+
             <Text style={styles.sectionTitle}>My Leagues</Text>
             {myLeagues.length === 0 ? (
               <Text style={styles.emptyText}>You haven’t created any leagues yet.</Text>
@@ -223,11 +202,19 @@ const fetchLeagues = async () => {
               <FlatList
                 data={myLeagues}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={renderLeagueCard}
+                renderItem={({ item }) => (
+                  <LeagueCard
+                    league={item}
+                    onPress={() => handleLeaguePress(item)}
+                    isOwner={true}
+                    onEdit={() => handleEditLeague(item)}
+                    onDelete={() => handleDeleteLeague(item)}
+                  />
+                )}
                 scrollEnabled={false}
               />
             )}
-          </View>
+          </>
         )}
       </ScrollView>
 
@@ -305,47 +292,23 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 14,
   },
-  card: {
-    backgroundColor: '#1c1c1e',
-    borderRadius: 12,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  cardImage: {
-    width: '100%',
-    height: 180,
-  },
-  cardContent: {
-    padding: 12,
-  },
-  cardTitle: {
-    color: '#fff',
+  sectionTitle: {
+    color: '#E81F89',
     fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  cardDetail: {
-    color: '#ccc',
-    fontSize: 13,
-    marginBottom: 2,
+    fontWeight: '700',
+    marginBottom: 10,
+    marginTop: 12,
   },
   emptyText: {
-    color: '#888',
+    color: '#666',
+    fontSize: 14,
     fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  sectionTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: 24,
-    marginBottom: 12,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#000',
   },
   errorText: {
     color: 'red',
@@ -354,12 +317,13 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     backgroundColor: '#E81F89',
-    padding: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
     borderRadius: 8,
   },
   retryText: {
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
 });
 

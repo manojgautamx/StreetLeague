@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, FlatList,
-  StyleSheet, Image, Alert, Keyboard
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  Image,
+  Alert,
+  Keyboard
 } from 'react-native';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -84,14 +91,15 @@ const ChatScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#fff" />
+          <Text numberOfLines={1} style={styles.leagueName}>
+            {leagueName || 'League Chat'}
+          </Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>{leagueName}</Text>
-        <View style={{ width: 24 }} />
       </View>
 
-      {/* Message list */}
+      {/* Messages */}
       <FlatList
         data={messages}
         inverted
@@ -133,17 +141,28 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 14,
-    backgroundColor: '#000',
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    backgroundColor: '#111',
     borderBottomWidth: 1,
     borderBottomColor: '#222',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 3,
   },
-  headerTitle: {
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
     flex: 1,
-    textAlign: 'center',
+  },
+  leagueName: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginLeft: 12,
+    maxWidth: '80%',
   },
   messageList: {
     flexGrow: 1,

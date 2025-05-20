@@ -72,3 +72,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_leagues_created(self, obj):
         return obj.user.created_leagues.count()
+    
