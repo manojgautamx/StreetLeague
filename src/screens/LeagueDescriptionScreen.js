@@ -52,24 +52,6 @@ const LeagueDescriptionScreen = ({ route }) => {
   const [host, setHost] = useState(null);
   const [currentUser, setCurrentUser] = useState('');
 
-  useEffect(() => {
-    fetchParticipants();
-  }, []);
-
-  const fetchParticipants = async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`/api/league-participants/${league.id}/`);
-      setHost(res.data.host);
-      setParticipants(res.data.participants);
-      setCurrentUser(res.data.current_user);
-    } catch (error) {
-      console.error('Failed to load participants', error);
-      Alert.alert('Error', 'Failed to load participants.');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleJoinLeague = async () => {
     setLoading(true);

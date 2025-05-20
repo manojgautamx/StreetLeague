@@ -76,7 +76,7 @@ const HomeScreen = () => {
   }, [navigation]);
 
  const handleFilterPress = () => {
-  const sports = ['all', 'football', 'cricket', 'basketball', 'badminton', 'esports']; // 'all' moved first
+  const sports = ['all', 'football', 'cricket', 'basketball', 'badminton', 'esports']; 
   Alert.alert('Filter by Sport', 'Choose a sport type', [
     ...sports.map((sport) => ({
       text: sport === 'all' ? 'All' : sport,
@@ -88,7 +88,7 @@ const HomeScreen = () => {
 
   const handleSortPress = () => {
   Alert.alert('Sort by', 'Choose sort order', [
-    { text: 'All', onPress: () => setSortOption(null) },        // <-- Changed here
+    { text: 'All', onPress: () => setSortOption(null) },        
     { text: 'Name (A-Z)', onPress: () => setSortOption('name') },
     { text: 'Date (Earliest)', onPress: () => setSortOption('date') },
     { text: 'Cancel', style: 'cancel' },
