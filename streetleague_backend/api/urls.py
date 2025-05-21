@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (register, CreateLeagueView, MyLeaguesView, PublicLeaguesView,join_league, joined_leagues, ChatView, update_league, delete_league, leave_league, league_participants_view, search_leagues
+from .views import (register, CreateLeagueView, MyLeaguesView, PublicLeaguesView,join_league, joined_leagues, ChatView, update_league, delete_league, leave_league, league_participants_view, search_leagues, UserProfileCreateView, ProfileStatusView, UpdateProfileView
 )
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from . import views
@@ -28,6 +28,10 @@ urlpatterns = [
     
      # 🔍 Search endpoint
     path('search-leagues/', views.search_leagues, name='search-leagues'),
+    # ✅ User profile endpoints
+    path('profile/', UserProfileCreateView.as_view(), name='user-profile'),
+    path('profile/status/', ProfileStatusView.as_view(), name='profile-status'),
+    path('profile/update/', UpdateProfileView.as_view(), name='update-profile'),
 
    
 ]

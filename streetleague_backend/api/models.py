@@ -73,7 +73,6 @@ class Message(models.Model):
         return f"Message from {self.user.username} at {self.created_at}"
 
 
-# ✅ UserProfile model
 class UserProfile(models.Model):
     GENDER_CHOICES = [
         ('male', 'Male'),
@@ -82,6 +81,7 @@ class UserProfile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    full_name = models.CharField(max_length=100, blank=True)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
     birth_date = models.DateField(blank=True, null=True)
     bio = models.TextField(blank=True)
@@ -96,17 +96,4 @@ class UserProfile(models.Model):
         if not self.birth_date:
             return None
         today = date.today()
-        return today.year - self.birth_date.year - (
-            (today.month, today.day) < (self.birth_date.month, self.birth_date.day)
-        )
-
-class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'get_leagues_created', 'get_leagues_joined']
-
-    def get_leagues_created(self, obj):
-        return obj.user.created_leagues.count()
-    get_leagues_created.short_description = 'Leagues Created'
-
-    def get_leagues_joined(self, obj):
-        return obj.user.joined_leagues.exclude(created_by=obj.user).count()
-    get_leagues_joined.short_description = 'Leagues Joined'
+        return today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))

@@ -17,6 +17,8 @@ import useAxios from '../utils/useAxios';
 import { AuthContext } from '../context/AuthContext';
 import BottomNavBar from '../components/BottomNavBar';
 import LeagueCard from '../components/LeagueCard';
+import Navbar from '../components/Navbar';
+
 
 const HomeScreen = () => {
   const [tab, setTab] = useState('Nearby');
@@ -28,7 +30,7 @@ const HomeScreen = () => {
   const [error, setError] = useState('');
   const navigation = useNavigation();
   const axios = useAxios();
-  const { logout } = useContext(AuthContext);
+  const { logout, user } = useContext(AuthContext);
 
   const fetchLeagues = async () => {
     try {
@@ -133,19 +135,8 @@ const HomeScreen = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
-      <View style={styles.navbar}>
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
-          <Ionicons name="menu" size={26} color="#fff" />
-        </TouchableOpacity>
-        <Image source={require('../assets/logo.png')} style={styles.logo} />
-        <TouchableOpacity>
-          <Image
-            source={{ uri: 'https://i.pravatar.cc/150?img=12' }}
-            style={styles.avatar}
-          />
-        </TouchableOpacity>
-      </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#000', paddingTop: '30', }}>
+      <Navbar />
 
       <ScrollView contentContainerStyle={styles.container}>
         <TouchableOpacity

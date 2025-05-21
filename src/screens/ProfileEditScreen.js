@@ -1,22 +1,15 @@
-import React, { useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  ScrollView,
-  Alert,
-  Platform,
-  KeyboardAvoidingView,
+  View, Text, TouchableOpacity, StyleSheet, Image,
+  ScrollView, Alert, Platform, KeyboardAvoidingView, TextInput
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import MultiSelect from 'react-native-multiple-select';
-import axiosInstance from '../utils/axiosInstance'; // Make sure this is correct
-import { TextInput } from 'react-native';
-import { ProfileStatusContext } from '../navigation/AppNavigator';
+import axiosInstance from '../utils/axiosInstance';
+
+const BASE_URL = 'http://10.0.2.2:8000';
 
 const sportsOptions = [
   { id: 'football', name: 'Football' },
@@ -26,16 +19,40 @@ const sportsOptions = [
   { id: 'hockey', name: 'Hockey' },
 ];
 
-export default function ProfileScreen({ navigation }) {
+export default function ProfileEditScreen({ navigation }) {
+  const [fullName, setFullName] = useState('');
   const [gender, setGender] = useState('');
   const [birthDate, setBirthDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [bio, setBio] = useState('');
   const [favoriteSports, setFavoriteSports] = useState([]);
   const [avatar, setAvatar] = useState(null);
+  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [bio, setBio] = useState('');
-  const { refreshProfileStatus } = useContext(ProfileStatusContext);
-  const [fullName, setFullName] = useState('');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const res = await axiosInstance.get('profile/');
+        const profile = res.data;
+        setFullName(profile.full_name || '');
+        setGender(profile.gender || '');
+        setBirthDate(new Date(profile.birth_date));
+        setBio(profile.bio || '');
+        setFavoriteSports(profile.favorite_sports || []);
+        if (profile.avatar) {
+          setAvatarUrl(profile.avatar.startsWith('http') ? profile.avatar : `${BASE_URL}${profile.avatar}`);
+        }
+      } catch (err) {
+        console.error('Failed to load profile:', err);
+        Alert.alert('Error', 'Could not load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   const pickImage = () => {
     launchImageLibrary(
@@ -53,6 +70,7 @@ export default function ProfileScreen({ navigation }) {
         }
         if (response.assets && response.assets.length > 0) {
           setAvatar(response.assets[0]);
+          setAvatarUrl(null); // Clear existing URL when new image is picked
         }
       }
     );
@@ -64,7 +82,6 @@ export default function ProfileScreen({ navigation }) {
       return;
     }
 
-
     try {
       setSubmitting(true);
       const formData = new FormData();
@@ -73,76 +90,63 @@ export default function ProfileScreen({ navigation }) {
         const uri = avatar.uri;
         const name = uri.split('/').pop();
         const type = avatar.type || 'image/jpeg';
-
         formData.append('avatar', {
           uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
           name,
           type,
         });
       }
+
       formData.append('full_name', fullName);
       formData.append('gender', gender);
       formData.append('birth_date', birthDate.toISOString().split('T')[0]);
-
+      formData.append('bio', bio);
       favoriteSports.forEach((sport) => {
         formData.append('favorite_sports', sport);
       });
 
-      formData.append('bio', bio);
-
-      await axiosInstance.post('profile/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await axiosInstance.put('profile/update/', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      if (refreshProfileStatus) {
-        await refreshProfileStatus();
-      }
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-
-    } catch (error) {
-      console.error('Profile update error:', error.response?.data || error.message);
+      Alert.alert('Success', 'Profile updated!');
+      navigation.goBack();
+    } catch (err) {
+      console.error('Update failed:', err.response?.data || err.message);
       Alert.alert('Error', 'Could not update profile');
     } finally {
       setSubmitting(false);
     }
   };
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={{ flex: 1 }}
-    >
-      <ScrollView
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        nestedScrollEnabled
-      >
-        <Text style={styles.title}>Complete Your Profile</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        <Text style={styles.title}>Edit Profile</Text>
 
         <TouchableOpacity onPress={pickImage} style={styles.avatarContainer}>
           {avatar ? (
             <Image source={{ uri: avatar.uri }} style={styles.avatar} />
+          ) : avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
           ) : (
             <Text style={styles.avatarText}>Upload Avatar</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.label}>Full Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your full name"
-          value={fullName}
-          onChangeText={setFullName}
-        />
+        <TextInput style={styles.input} value={fullName} onChangeText={setFullName} />
 
         <Text style={styles.label}>Gender</Text>
-        <Picker
-          selectedValue={gender}
-          onValueChange={(itemValue) => setGender(itemValue)}
-          style={styles.picker}
-        >
+        <Picker selectedValue={gender} onValueChange={setGender} style={styles.picker}>
           <Picker.Item label="Select Gender" value="" />
           <Picker.Item label="Male" value="male" />
           <Picker.Item label="Female" value="female" />
@@ -167,22 +171,18 @@ export default function ProfileScreen({ navigation }) {
         )}
 
         <Text style={styles.label}>Bio</Text>
-        <View style={styles.bioInputWrapper}>
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Tell us something about yourself..."
-            multiline
-            numberOfLines={4}
-            style={styles.bioInput}
-          />
-        </View>
+        <TextInput
+          style={[styles.input, styles.bioInput]}
+          value={bio}
+          onChangeText={setBio}
+          multiline
+        />
 
         <Text style={styles.label}>Favorite Sports</Text>
         <MultiSelect
           items={sportsOptions}
           uniqueKey="id"
-          onSelectedItemsChange={(selected) => setFavoriteSports(selected)}
+          onSelectedItemsChange={setFavoriteSports}
           selectedItems={favoriteSports}
           selectText="Pick Sports"
           searchInputPlaceholderText="Search sports..."
@@ -193,14 +193,12 @@ export default function ProfileScreen({ navigation }) {
           selectedItemIconColor="#E81F89"
           itemTextColor="#000"
           displayKey="name"
-          searchInputStyle={{ color: '#CCC' }}
           submitButtonColor="#E81F89"
           submitButtonText="Submit"
-          styleMainWrapper={styles.multiSelect}
         />
 
-        <TouchableOpacity onPress={handleSubmit} style={styles.submitButton} disabled={submitting}>
-          <Text style={styles.submitText}>{submitting ? 'Saving...' : 'Save Profile'}</Text>
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit} disabled={submitting}>
+          <Text style={styles.submitText}>{submitting ? 'Saving...' : 'Save Changes'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -209,23 +207,28 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 130,
     padding: 20,
-    paddingTop: 150,
     backgroundColor: '#111', // Dark background
-    color: '#fff',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#111', // Match container background
   },
   title: {
     fontSize: 24,
-    marginBottom: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    color: '#fff', // White title
+    marginBottom: 20,
+    color: '#fff', // Light text
   },
   avatarContainer: {
     alignSelf: 'center',
     marginBottom: 20,
     borderRadius: 75,
-    backgroundColor: '#222', // Dark gray
+    backgroundColor: '#222', // Dark avatar background
     height: 150,
     width: 150,
     justifyContent: 'center',
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     borderRadius: 75,
   },
   avatarText: {
-    color: '#aaa', // Lighter gray text
+    color: '#aaa', // Light gray text
   },
   label: {
     fontWeight: 'bold',
@@ -245,42 +248,39 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     color: '#fff',
   },
-  picker: {
-    backgroundColor: '#222', // Dark input bg
-    color: '#fff',
+  input: {
+    backgroundColor: '#222', // Dark input background
+    padding: 10,
+    borderRadius: 5,
     marginBottom: 10,
+    color: '#fff', // Input text color
+  },
+  picker: {
+    backgroundColor: '#222',
+    marginBottom: 10,
+    color: '#fff', // Picker text
   },
   datePicker: {
     padding: 12,
     backgroundColor: '#222',
     marginBottom: 10,
     borderRadius: 5,
+    color: '#fff', // Text color in date picker
+  },
+  bioInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
     color: '#fff',
   },
-  multiSelect: {
-    marginBottom: 10,
-  },
   submitButton: {
-    marginTop: 20,
     backgroundColor: '#E81F89',
-    paddingVertical: 12,
+    padding: 12,
     borderRadius: 8,
+    marginTop: 20,
   },
   submitText: {
     color: '#fff',
     textAlign: 'center',
     fontWeight: 'bold',
-  },
-  bioInputWrapper: {
-    backgroundColor: '#222',
-    borderRadius: 5,
-    marginBottom: 10,
-    padding: 10,
-    color: '#fff',
-  },
-  bioInput: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-    color: '#fff', // Input text color
   },
 });
